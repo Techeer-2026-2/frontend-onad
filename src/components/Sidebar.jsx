@@ -6,6 +6,7 @@ import {
   LogOut,
 } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { logout } from '../api/auth'
 
 const mainMenuItems = [
   { label: '대시보드', path: '/dashboard', Icon: ChartPie },
@@ -15,6 +16,17 @@ const mainMenuItems = [
 
 function Sidebar({ isOpen = false, onNavigate = () => {} }) {
   const navigate = useNavigate()
+
+  async function handleLogout() {
+    try {
+      await logout()
+    } catch {
+      // Local authentication is cleared even when the API is unavailable.
+    } finally {
+      navigate('/login', { replace: true })
+      onNavigate()
+    }
+  }
 
   const linkClassName = ({ isActive }) =>
     `flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
@@ -94,7 +106,7 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
 
         <button
           type="button"
-          onClick={() => navigate('/login')}
+          onClick={handleLogout}
           className="mt-3 flex w-full items-center justify-center gap-2 py-1 text-xs text-gray-400 transition-colors hover:text-white"
         >
           <LogOut size={15} aria-hidden="true" />

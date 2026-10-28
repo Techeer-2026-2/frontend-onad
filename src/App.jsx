@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import Dashboard from './pages/Dashboard'
 import DashboardLayout from './layouts/DashboardLayout'
 
 function App() {
@@ -7,7 +8,7 @@ function App() {
       <Routes>
         <Route element={<DashboardLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<div>대시보드</div>} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/campaigns" element={<div>캠페인 관리</div>} />
           <Route path="/campaigns/new" element={<div>캠페인 등록</div>} />
           <Route path="/campaigns/:campaignId" element={<div>캠페인 상세</div>} />

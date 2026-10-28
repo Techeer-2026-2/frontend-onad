@@ -1,4 +1,3 @@
-import { Bell } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 
 const pageTitles = {

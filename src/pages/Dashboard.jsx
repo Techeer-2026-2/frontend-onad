@@ -83,7 +83,7 @@ function TrendChart({ granularity }) {
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label={`${granularity === 'hour' ? '시간' : granularity === 'day' ? '일' : '주'} 단위 노출 및 클릭 추이 샘플 차트`}
-        className="h-64 min-w-[600px] w-full"
+        className="h-64 min-w-150 w-full"
       >
         {[0, 1, 2, 3].map((tick) => {
           const y = top + (chartHeight / 3) * tick

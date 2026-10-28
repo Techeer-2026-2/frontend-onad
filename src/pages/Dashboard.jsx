@@ -12,9 +12,9 @@ import KpiCard from '../components/kpiCard'
 import campaigns from '../data/campaigns'
 
 const metrics = [
-  { title: '광고 발송(노출) 수', value: '12,847', change: '+18.4%', progress: 78, Icon: Send },
-  { title: '클릭 수', value: '1,203', change: '+12.8%', progress: 64, Icon: MousePointer2 },
-  { title: 'CTR (클릭률)', value: '15.2%', change: '+2.4%p', progress: 82, Icon: Percent, featured: true },
+  { title: '광고 발송(노출) 수', value: '12,847', change: '+18.4%', Icon: Send },
+  { title: '클릭 수', value: '1,203', change: '+12.8%', Icon: MousePointer2 },
+  { title: 'CTR (클릭률)', value: '15.2%', change: '+2.4%p', Icon: Percent, featured: true },
 ]
 
 const chartSeries = {
@@ -57,7 +57,7 @@ function formatDate(date) {
   return date.replaceAll('-', '.')
 }
 
-function TrendChart({ granularity }) {
+export function TrendChart({ granularity }) {
   const { labels, impressions, clicks } = chartSeries[granularity]
   const width = 760
   const height = 230
@@ -78,12 +78,12 @@ function TrendChart({ granularity }) {
   })
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full min-w-0">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label={`${granularity === 'hour' ? '시간' : granularity === 'day' ? '일' : '주'} 단위 노출 및 클릭 추이 샘플 차트`}
-        className="h-64 min-w-150 w-full"
+        className="h-64 w-full"
       >
         {[0, 1, 2, 3].map((tick) => {
           const y = top + (chartHeight / 3) * tick
@@ -263,11 +263,8 @@ function Dashboard() {
           <div>
             <h2 id="trend-title" className="flex items-center gap-2 text-base font-bold text-[#232528]">
               <ChartLine size={18} className="text-[#0B7CFF]" aria-hidden="true" />
-              시간대별 / 일별 광고 성과 추이
+              시간대별 광고 성과 추이
             </h2>
-            <p className="mt-0.5 text-xs text-[#364964]">
-              노출 수와 클릭 수를 비교한 샘플 시계열 차트
-            </p>
           </div>
           <div className="inline-flex self-start rounded-lg border border-[#E5E5E5] bg-slate-50 p-0.5 text-xs font-medium sm:self-auto" role="group" aria-label="차트 시간 단위">
             {[

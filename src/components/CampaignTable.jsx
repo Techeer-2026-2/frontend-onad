@@ -26,7 +26,7 @@ function CampaignTable({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[880px] text-left text-xs text-[#232528]">
+        <table className="w-full min-w-220 text-left text-xs text-[#232528]">
           <thead className="border-b border-[#E5E5E5] bg-slate-50 font-semibold uppercase text-[#364964]">
             <tr>
               <th scope="col" className="px-4 py-3">캠페인명</th>

@@ -18,7 +18,7 @@ function CampaignList() {
         </div>
         <Link
           to="/campaigns/new"
-          className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-lg bg-[#0B7CFF] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF] sm:self-auto"
+          className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-lg bg-[#0B7CFF] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF] sm:self-auto"
         >
           <Plus size={16} aria-hidden="true" />
           캠페인 등록

@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard'
 import CampaignList from './pages/CampaignList'
 import CampaignCreate from './pages/CampaignCreate'
 import CampaignDetail from './pages/CampaignDetail'
+import Account from './pages/Account'
 import DashboardLayout from './layouts/DashboardLayout'
 
 function App() {
@@ -15,7 +16,7 @@ function App() {
           <Route path="/campaigns" element={<CampaignList />} />
           <Route path="/campaigns/new" element={<CampaignCreate />} />
           <Route path="/campaigns/:campaignId" element={<CampaignDetail />} />
-          <Route path="/account" element={<div>내 정보</div>} />
+          <Route path="/account" element={<Account />} />
         </Route>
         <Route path="/login" element={<div>로그인</div>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

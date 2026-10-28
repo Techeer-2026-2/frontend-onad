@@ -13,7 +13,7 @@ const mainMenuItems = [
   { label: '캠페인 등록', path: '/campaigns/new', Icon: PlusCircle },
 ]
 
-function Sidebar() {
+function Sidebar({ isOpen = false, onNavigate = () => {} }) {
   const navigate = useNavigate()
 
   const linkClassName = ({ isActive }) =>
@@ -24,10 +24,16 @@ function Sidebar() {
     }`
 
   return (
-    <aside className="z-30 flex w-64 shrink-0 select-none flex-col border-r border-gray-800 bg-[#0C0C0D] text-white">
+    <aside
+      id="primary-sidebar"
+      className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 select-none flex-col border-r border-gray-800 bg-[#0C0C0D] text-white transition-transform duration-200 md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+    >
       <button
         type="button"
-        onClick={() => navigate('/dashboard')}
+        onClick={() => {
+          navigate('/dashboard')
+          onNavigate()
+        }}
         aria-label="ONAD 대시보드로 이동"
         className="flex items-center gap-3 border-b border-gray-800 p-6 text-left"
       >
@@ -53,6 +59,7 @@ function Sidebar() {
             key={path}
             to={path}
             end={path === '/campaigns'}
+            onClick={onNavigate}
             className={linkClassName}
           >
             <Icon size={18} aria-hidden="true" />
@@ -63,7 +70,7 @@ function Sidebar() {
         <p className="px-3 pb-2 pt-6 text-[11px] font-semibold tracking-wider text-gray-400">
           계정 및 설정
         </p>
-        <NavLink to="/account" className={linkClassName}>
+        <NavLink to="/account" onClick={onNavigate} className={linkClassName}>
           <UserCog size={18} aria-hidden="true" />
           <span>내 정보</span>
         </NavLink>

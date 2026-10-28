@@ -150,9 +150,6 @@ function CampaignCreate() {
   const describedBy = (id, error) => error ? `${id}-error` : undefined
   const previewTitle = formData.title.trim() || '캠페인 타이틀이 여기에 표시됩니다'
   const previewBody = formData.body.trim() || '캠페인 설명을 입력하면 미리보기에 실시간으로 반영됩니다.'
-  const audienceLabel = selectedAgeGroups.includes('전체') ? '전체 연령' : selectedAgeGroups.join(', ')
-  const genderLabel = { all: '전체 성별', female: '여성', male: '남성' }[selectedGender]
-
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -209,7 +206,7 @@ function CampaignCreate() {
                         aria-pressed={isSelected}
                         onClick={() => toggleAgeGroup(ageGroup)}
                         className={isSelected
-                          ? 'rounded-lg bg-[#0B7CFF] px-3.5 py-2 text-xs font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]'
+                          ? 'rounded-lg bg-[#0B7CFF] px-3.5 py-2 text-xs font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]'
                           : 'rounded-lg border border-[#E5E5E5] px-3.5 py-2 text-xs font-medium text-[#232528] hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]'}
                       >
                         {ageGroup}
@@ -246,7 +243,7 @@ function CampaignCreate() {
           </SectionCard>
 
           <SectionCard number="03" title="캠페인 일정 설정">
-            <p className="-mt-2 text-[11px] text-[#667085]">캠페인이 노출될 시작·종료 일시를 지정합니다.</p>
+            <p className="-mt-2 text-[11px] text-[#667085]">캠페인이 노출될 시작 종료 일시를 지정합니다.</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField id="startAt" label="시작 일시" required error={errors.startAt}>
                 <input id="startAt" name="startAt" type="datetime-local" value={formData.startAt} onChange={handleChange} aria-invalid={Boolean(errors.startAt)} aria-describedby={describedBy('startAt', errors.startAt)} className={inputClassName} />
@@ -268,10 +265,6 @@ function CampaignCreate() {
           <div className="space-y-4 rounded-xl border border-[#E5E5E5] bg-white p-5 shadow-sm lg:sticky lg:top-6">
             <div className="flex items-start justify-between border-b border-slate-100 pb-3">
               <div><h2 className="text-xs font-extrabold tracking-wide text-[#0B7CFF]">PREVIEW</h2><p className="mt-1 text-[10px] text-[#667085]">작성 중인 콘텐츠를 미리 확인합니다.</p></div>
-            </div>
-            <div className="flex flex-wrap gap-2 text-[10px]">
-              <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-[#0B7CFF]">대상 연령 · {audienceLabel}</span>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-[#475467]">{genderLabel}</span>
             </div>
             <div className="mx-auto max-w-67.5 rounded-4xl border-[7px] border-[#17191D] bg-[#101216] p-2.5 text-white shadow-xl">
               <div className="flex items-center justify-between px-2 pb-3 pt-1 text-[9px] font-semibold"><span>9:41</span><span>●●● ▰</span></div>

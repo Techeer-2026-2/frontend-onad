@@ -72,6 +72,8 @@ function CampaignCreate() {
   const [previewUrl, setPreviewUrl] = useState('')
   const [imageError, setImageError] = useState('')
   const imageInputRef = useRef(null)
+  const [selectedAgeGroups, setSelectedAgeGroups] = useState(['20대', '30대'])
+  const [selectedGender, setSelectedGender] = useState('all')
 
   useEffect(() => {
     return () => {
@@ -87,6 +89,20 @@ function CampaignCreate() {
     if (hasSubmitted) setErrors(validateForm(nextFormData))
   }
 
+  function toggleAgeGroup(ageGroup) {
+    setSelectedAgeGroups((current) => {
+      if (ageGroup === '전체') {
+        return ['전체']
+      }
+
+      const withoutAll = current.filter((age) => age !== '전체')
+      if (withoutAll.includes(ageGroup)) {
+        const next = withoutAll.filter((age) => age !== ageGroup)
+        return next.length > 0 ? next : ['전체']
+      }
+      return [...withoutAll, ageGroup]
+    })
+  }
   function handleImageChange(event) {
     const file = event.target.files?.[0]
     setNotice('')
@@ -134,6 +150,8 @@ function CampaignCreate() {
   const describedBy = (id, error) => error ? `${id}-error` : undefined
   const previewTitle = formData.title.trim() || '캠페인 타이틀이 여기에 표시됩니다'
   const previewBody = formData.body.trim() || '캠페인 설명을 입력하면 미리보기에 실시간으로 반영됩니다.'
+  const audienceLabel = selectedAgeGroups.includes('전체') ? '전체 연령' : selectedAgeGroups.join(', ')
+  const genderLabel = { all: '전체 성별', female: '여성', male: '남성' }[selectedGender]
 
   return (
     <div className="space-y-6">
@@ -177,7 +195,57 @@ function CampaignCreate() {
             </div>
           </SectionCard>
 
-          <SectionCard number="02" title="캠페인 일정 설정">
+          <SectionCard number="02" title="타겟 조건 설정">
+            <div className="space-y-5">
+              <fieldset>
+                <legend className="text-xs font-bold text-[#232528]">연령대 타겟 <span className="font-normal text-[#667085]">(중복 선택 가능)</span></legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {['전체', '20대', '30대', '40대', '50대+'].map((ageGroup) => {
+                    const isSelected = selectedAgeGroups.includes(ageGroup)
+                    return (
+                      <button
+                        key={ageGroup}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => toggleAgeGroup(ageGroup)}
+                        className={isSelected
+                          ? 'rounded-lg bg-[#0B7CFF] px-3.5 py-2 text-xs font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]'
+                          : 'rounded-lg border border-[#E5E5E5] px-3.5 py-2 text-xs font-medium text-[#232528] hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]'}
+                      >
+                        {ageGroup}
+                      </button>
+                    )
+                  })}
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend className="text-xs font-bold text-[#232528]">성별 타겟</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {[['all', '전체 성별'], ['female', '여성'], ['male', '남성']].map(([value, label]) => {
+                    const isSelected = selectedGender === value
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={isSelected}
+                        aria-checked={isSelected}
+                        onClick={() => setSelectedGender(value)}
+                        className={isSelected
+                          ? 'rounded-lg bg-[#0B7CFF] px-3.5 py-2 text-xs font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]'
+                          : 'rounded-lg border border-[#E5E5E5] px-3.5 py-2 text-xs font-medium text-[#232528] hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]'}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </fieldset>
+              <p className="text-[11px] leading-5 text-[#667085]">선택 조건은 현재 화면 상태로만 유지됩니다. 등록 API 연동은 타겟 조건 필드에 대한 백엔드 계약 확인 후 진행합니다.</p>
+            </div>
+          </SectionCard>
+
+          <SectionCard number="03" title="캠페인 일정 설정">
             <p className="-mt-2 text-[11px] text-[#667085]">캠페인이 노출될 시작·종료 일시를 지정합니다.</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField id="startAt" label="시작 일시" required error={errors.startAt}>
@@ -200,6 +268,10 @@ function CampaignCreate() {
           <div className="space-y-4 rounded-xl border border-[#E5E5E5] bg-white p-5 shadow-sm lg:sticky lg:top-6">
             <div className="flex items-start justify-between border-b border-slate-100 pb-3">
               <div><h2 className="text-xs font-extrabold tracking-wide text-[#0B7CFF]">PREVIEW</h2><p className="mt-1 text-[10px] text-[#667085]">작성 중인 콘텐츠를 미리 확인합니다.</p></div>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[10px]">
+              <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-[#0B7CFF]">대상 연령 · {audienceLabel}</span>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-[#475467]">{genderLabel}</span>
             </div>
             <div className="mx-auto max-w-67.5 rounded-4xl border-[7px] border-[#17191D] bg-[#101216] p-2.5 text-white shadow-xl">
               <div className="flex items-center justify-between px-2 pb-3 pt-1 text-[9px] font-semibold"><span>9:41</span><span>●●● ▰</span></div>

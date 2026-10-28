@@ -1,23 +1,28 @@
 import { ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-function CampaignTable({ campaigns }) {
+function CampaignTable({
+  campaigns,
+  title = '최근 운영 캠페인 현황',
+  description = 'ONAD 광고 캠페인 성과 요약 (샘플 데이터)',
+  showAllLink = true,
+}) {
   return (
     <section className="overflow-hidden rounded-xl border border-[#E5E5E5] bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-[#E5E5E5] p-5">
         <div>
-          <h2 className="text-base font-bold text-[#232528]">최근 운영 캠페인 현황</h2>
-          <p className="mt-0.5 text-xs text-[#364964]">
-            ONAD 광고 캠페인 성과 요약 (샘플 데이터)
-          </p>
+          <h2 className="text-base font-bold text-[#232528]">{title}</h2>
+          <p className="mt-0.5 text-xs text-[#364964]">{description}</p>
         </div>
-        <Link
-          to="/campaigns"
-          className="flex items-center gap-1 text-xs font-semibold text-[#0B7CFF] hover:underline"
-        >
-          <span>전체 캠페인 보기</span>
-          <ChevronRight size={14} aria-hidden="true" />
-        </Link>
+        {showAllLink && (
+          <Link
+            to="/campaigns"
+            className="flex items-center gap-1 text-xs font-semibold text-[#0B7CFF] hover:underline"
+          >
+            <span>전체 캠페인 보기</span>
+            <ChevronRight size={14} aria-hidden="true" />
+          </Link>
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -35,7 +40,13 @@ function CampaignTable({ campaigns }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5]">
-            {campaigns.map((campaign) => {
+            {campaigns.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-12 text-center text-sm text-[#667085]">
+                  등록된 캠페인이 없습니다.
+                </td>
+              </tr>
+            ) : campaigns.map((campaign) => {
               const active = campaign.status === 'active'
               const statusLabel = active ? '진행중' : '예약 대기'
               const statusClass = active

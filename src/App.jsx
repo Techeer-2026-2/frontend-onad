@@ -19,6 +19,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/campaigns" element={<CampaignList />} />
             <Route path="/campaigns/new" element={<CampaignCreate />} />
+            <Route path="/campaigns/:campaignId/edit" element={<CampaignCreate />} />
             <Route path="/campaigns/:campaignId" element={<CampaignDetail />} />
             <Route path="/account" element={<Account />} />
           </Route>

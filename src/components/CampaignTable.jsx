@@ -2,10 +2,13 @@ import { ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 function CampaignTable({
-  campaigns,
+  campaigns = [],
   title = '최근 운영 캠페인 현황',
   description = 'ONAD 광고 캠페인 성과 요약 (샘플 데이터)',
   showAllLink = true,
+  isLoading = false,
+  errorMessage = '',
+  onRetry,
 }) {
   return (
     <section className="overflow-hidden rounded-xl border border-[#E5E5E5] bg-white shadow-sm">
@@ -40,18 +43,42 @@ function CampaignTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E5E5]">
-            {campaigns.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-12 text-center text-sm text-[#667085]" role="status">
+                  캠페인 목록을 불러오는 중입니다…
+                </td>
+              </tr>
+            ) : errorMessage ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-12 text-center">
+                  <p role="alert" className="text-sm text-rose-600">{errorMessage}</p>
+                  {onRetry && (
+                    <button
+                      type="button"
+                      onClick={onRetry}
+                      className="mt-3 rounded-lg border border-[#D0D5DD] px-3 py-2 text-xs font-semibold text-[#344054] hover:bg-gray-50"
+                    >
+                      다시 시도
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ) : campaigns.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-12 text-center text-sm text-[#667085]">
                   등록된 캠페인이 없습니다.
                 </td>
               </tr>
             ) : campaigns.map((campaign) => {
-              const active = campaign.status === 'active'
-              const statusLabel = active ? '진행중' : '예약 대기'
+              const active = campaign.status === 'active' || campaign.status === 'ONGOING'
+              const pending = campaign.status === 'pending' || campaign.status === 'PENDING'
+              const statusLabel = active ? '진행중' : pending ? '예약 대기' : campaign.status === 'ENDED' ? '종료' : campaign.status
               const statusClass = active
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-blue-200 bg-blue-50 text-[#0B7CFF]'
+                : pending
+                  ? 'border-blue-200 bg-blue-50 text-[#0B7CFF]'
+                  : 'border-slate-200 bg-slate-50 text-[#667085]'
 
               return (
                 <tr key={campaign.id} className="transition-colors hover:bg-slate-50/80">
@@ -69,13 +96,13 @@ function CampaignTable({
                     {campaign.targetAudience}
                   </td>
                   <td className="px-4 py-3 text-right font-mono">
-                    {campaign.sent.toLocaleString()}
+                    {Number.isFinite(campaign.sent) ? campaign.sent.toLocaleString() : '—'}
                   </td>
                   <td className="px-4 py-3 text-right font-mono">
-                    {campaign.clicks.toLocaleString()}
+                    {Number.isFinite(campaign.clicks) ? campaign.clicks.toLocaleString() : '—'}
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-[#0B7CFF]">
-                    {campaign.ctr.toFixed(1)}%
+                    {Number.isFinite(campaign.ctr) ? `${campaign.ctr.toFixed(1)}%` : '—'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-[11px] text-[#364964]">
                     {campaign.period}

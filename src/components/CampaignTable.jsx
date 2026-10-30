@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 function CampaignTable({
@@ -9,15 +9,28 @@ function CampaignTable({
   isLoading = false,
   errorMessage = '',
   onRetry,
+  pagination,
 }) {
   return (
     <section className="overflow-hidden rounded-xl border border-[#E5E5E5] bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-[#E5E5E5] p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E5E5] p-5">
         <div>
           <h2 className="text-base font-bold text-[#232528]">{title}</h2>
           <p className="mt-0.5 text-xs text-[#364964]">{description}</p>
         </div>
-        {showAllLink && (
+        {pagination ? (
+          <label className="flex items-center gap-2 text-xs text-[#667085]">
+            표시 개수
+            <select
+              value={pagination.pageSize}
+              disabled={isLoading}
+              onChange={(event) => pagination.onPageSizeChange(Number(event.target.value))}
+              className="rounded-lg border border-[#D0D5DD] bg-white px-2 py-2 text-[#344054] disabled:opacity-50"
+            >
+              {[20, 50, 100].map((size) => <option key={size} value={size}>{size}개</option>)}
+            </select>
+          </label>
+        ) : showAllLink && (
           <Link
             to="/campaigns"
             className="flex items-center gap-1 text-xs font-semibold text-[#0B7CFF] hover:underline"
@@ -121,6 +134,35 @@ function CampaignTable({
           </tbody>
         </table>
       </div>
+
+      {pagination && (
+        <nav aria-label="전체 캠페인 페이지" className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E5E5E5] px-5 py-4">
+          <p className="text-xs text-[#667085]" aria-live="polite">
+            {isLoading ? '조회 중…' : errorMessage ? '조회 실패' : `총 ${pagination.totalElements.toLocaleString('ko-KR')}건`}
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => pagination.onPageChange(pagination.page - 1)}
+              disabled={isLoading || pagination.page === 0}
+              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#D0D5DD] px-3 text-xs font-semibold text-[#344054] hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ChevronLeft size={15} aria-hidden="true" /> 이전
+            </button>
+            <span className="text-xs text-[#344054]">
+              {pagination.totalPages === 0 ? '0 / 0' : `${pagination.page + 1} / ${pagination.totalPages}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => pagination.onPageChange(pagination.page + 1)}
+              disabled={isLoading || pagination.page + 1 >= pagination.totalPages}
+              className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#D0D5DD] px-3 text-xs font-semibold text-[#344054] hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              다음 <ChevronRight size={15} aria-hidden="true" />
+            </button>
+          </div>
+        </nav>
+      )}
     </section>
   )
 }

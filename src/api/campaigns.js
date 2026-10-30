@@ -5,6 +5,11 @@ export function getCampaigns({ status, signal } = {}) {
   return apiRequest(`/api/v1/campaigns${query}`, { signal })
 }
 
+export function getCampaignHistory({ page = 0, size = 20, signal } = {}) {
+  const query = new URLSearchParams({ page: String(page), size: String(size) })
+  return apiRequest('/api/v1/campaigns/history?' + query, { signal })
+}
+
 export function getCampaign(campaignId, { signal } = {}) {
   return apiRequest(`/api/v1/campaigns/${encodeURIComponent(campaignId)}`, { signal })
 }

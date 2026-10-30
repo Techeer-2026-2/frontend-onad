@@ -10,6 +10,7 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import KpiCard from '../components/kpiCard'
 import { deleteCampaign, getCampaign } from '../api/campaigns'
+import { subscribeCampaignStats } from '../api/campaignStats'
 
 function formatAgeGroups(values) {
   if (!Array.isArray(values) || values.length === 0) return '—'
@@ -54,6 +55,9 @@ function CampaignDetail() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
+  const [liveStats, setLiveStats] = useState(null)
+  const [streamStatus, setStreamStatus] = useState('connecting')
+  const [streamError, setStreamError] = useState('')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -78,6 +82,17 @@ function CampaignDetail() {
 
     return () => controller.abort()
   }, [campaignId, retryCount])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    subscribeCampaignStats(campaignId, {
+      signal: controller.signal,
+      onStats: (stats) => setLiveStats({ ...stats, campaignId }),
+      onStatus: (status) => setStreamStatus(status),
+      onError: (message) => setStreamError(message),
+    })
+    return () => controller.abort()
+  }, [campaignId])
 
   async function handleDelete() {
     if (!window.confirm('캠페인을 삭제할까요? 삭제한 캠페인은 복구할 수 없습니다.')) return
@@ -110,10 +125,16 @@ function CampaignDetail() {
   }
 
   const status = getStatus(campaign.status)
+  const currentLiveStats = liveStats?.campaignId === campaignId ? liveStats : null
+  const impressions = currentLiveStats?.impressionCount ?? campaign.impressionCount
+  const clicks = currentLiveStats?.clickCount ?? campaign.clickCount
+  const ctr = Number.isFinite(impressions) && Number.isFinite(clicks)
+    ? `${impressions > 0 ? (clicks / impressions * 100).toFixed(1) : '0.0'}%`
+    : '—'
   const metrics = [
-    { title: '광고 발송(노출) 수', value: formatCount(campaign.impressionCount), Icon: Send },
-    { title: '클릭 수', value: formatCount(campaign.clickCount), Icon: MousePointer2 },
-    { title: 'CTR (클릭률)', value: '—', Icon: Percent, featured: true },
+    { title: '광고 발송(노출) 수', value: formatCount(impressions), Icon: Send },
+    { title: '클릭 수', value: formatCount(clicks), Icon: MousePointer2 },
+    { title: 'CTR (클릭률)', value: ctr, Icon: Percent, featured: true },
   ]
 
   return (
@@ -146,6 +167,11 @@ function CampaignDetail() {
 
       {deleteError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{deleteError}</p>}
 
+      <div role="status" className="text-xs text-[#667085]">
+        실시간 통계: {streamStatus === 'connected' ? '연결됨' : streamStatus === 'stopped' ? '연결 중단' : '연결 중'}
+        {streamError ? ` · ${streamError}` : ''}
+        {streamStatus !== 'connected' ? ' · 마지막 조회 수치를 표시합니다.' : ''}
+      </div>
       <section aria-label="캠페인 주요 성과" className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {metrics.map((metric) => <KpiCard key={metric.title} {...metric} />)}
       </section>

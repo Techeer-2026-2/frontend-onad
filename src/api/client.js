@@ -32,7 +32,8 @@ async function parseResponse(response) {
 
 async function send(path, options, accessToken) {
   const headers = new Headers(options.headers)
-  if (options.body && !headers.has('Content-Type')) {
+  const isFormData = options.body instanceof FormData
+  if (options.body && !isFormData && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
   if (accessToken) {
@@ -103,10 +104,25 @@ export async function apiRequest(path, options = {}) {
   const payload = await parseResponse(response)
   if (!response.ok) {
     throw new ApiError(
-      typeof payload === 'string' && payload ? payload : `요청에 실패했습니다. (${response.status})`,
+      typeof payload === 'string' && payload
+        ? payload
+        : payload?.message || `요청에 실패했습니다. (${response.status})`,
       response.status,
     )
   }
 
   return payload
+}
+
+// SSE needs the raw Response body; apiRequest() consumes the response as JSON/text.
+// Reuse the same token refresh flow so long-lived streams can reconnect.
+export async function authenticatedFetch(path, options = {}) {
+  const { accessToken } = useAuthStore.getState()
+  let response = await send(path, options, accessToken)
+  if (response.status === 401 && !options.signal?.aborted) {
+    const renewedToken = await refreshSession()
+    response = await send(path, options, renewedToken)
+    if (response.status === 401) useAuthStore.getState().clearAuth()
+  }
+  return response
 }

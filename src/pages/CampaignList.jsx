@@ -44,6 +44,9 @@ function AllCampaignsPanel() {
         setCampaigns(response.map((campaign) => ({
           ...campaign,
           id: campaign.campaignId,
+          sent: campaign.impressionCount,
+          clicks: campaign.clickCount,
+          ctr: campaign.impressionCount > 0 ? (campaign.clickCount / campaign.impressionCount) * 100 : null,
           name: campaign.title,
           targetAudience: formatTargetAudience(campaign.targetAgeGroups, campaign.targetGenders),
           period: formatCampaignPeriod(campaign.startAt, campaign.endAt),

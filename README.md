@@ -175,6 +175,12 @@ src/
 
 ## 관련 저장소
 
+### 광고 성과 분석 - ONAD
+
+광고주를 위한 캠페인 관리 및 광고 성과 분석 프론트엔드입니다.
+
+- Repository: [frontend-onad](https://github.com/Techeer-2026-2/frontend-onad)
+
 ### 음악 스트리밍 서비스 - ONBEAT
 
 통근 정보에 맞춘 음악 추천 및 광고 배너 노출 기능을 제공하는 사용자용 서비스입니다.
@@ -187,8 +193,4 @@ src/
 
 - Repository: [backend](https://github.com/Techeer-2026-2/backend)
 
-### 광고 성과 분석 - ONAD
 
-광고주를 위한 캠페인 관리 및 광고 성과 분석 프론트엔드입니다.
-
-- Repository: [frontend-onad](https://github.com/Techeer-2026-2/frontend-onad)

@@ -14,17 +14,24 @@ export function getCampaign(campaignId, { signal } = {}) {
   return apiRequest(`/api/v1/campaigns/${encodeURIComponent(campaignId)}`, { signal })
 }
 
-export function createCampaign(payload) {
+function createCampaignFormData(payload, image) {
+  const formData = new FormData()
+  formData.append('request', new Blob([JSON.stringify(payload)], { type: 'application/json' }))
+  if (image) formData.append('image', image)
+  return formData
+}
+
+export function createCampaign(payload, image) {
   return apiRequest('/api/v1/campaigns', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: createCampaignFormData(payload, image),
   })
 }
 
-export function updateCampaign(campaignId, payload) {
+export function updateCampaign(campaignId, payload, image) {
   return apiRequest(`/api/v1/campaigns/${encodeURIComponent(campaignId)}`, {
     method: 'PATCH',
-    body: JSON.stringify(payload),
+    body: createCampaignFormData(payload, image),
   })
 }
 

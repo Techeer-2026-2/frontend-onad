@@ -194,8 +194,8 @@ function CampaignCreate() {
       return
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setImageError('이미지 파일은 10MB 이하로 선택해 주세요.')
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('이미지 파일은 5MB 이하로 선택해 주세요.')
       event.target.value = ''
       setSelectedImage(null)
       setPreviewUrl('')
@@ -212,7 +212,7 @@ function CampaignCreate() {
     setFormData(submittedFormData)
     const nextErrors = validateForm(submittedFormData)
     if (imageError) nextErrors.imageFile = imageError
-    if (selectedImage) nextErrors.imageFile = '이미지 업로드 API가 아직 없어 파일을 전송할 수 없습니다. 파일 선택을 해제한 뒤 저장해 주세요.'
+    if (!isEditMode && !selectedImage) nextErrors.imageFile = '배너 이미지 파일을 선택해 주세요.'
     if (selectedAgeGroups.length === 0 || selectedAgeGroups.some((age) => !ageGroupValues[age])) nextErrors.targetAgeGroups = '타겟 연령을 선택해 주세요.'
     if (selectedGenders.length === 0 || selectedGenders.some((gender) => !genderValues[gender])) nextErrors.targetGenders = '타겟 성별을 선택해 주세요.'
     setErrors(nextErrors)
@@ -229,16 +229,15 @@ function CampaignCreate() {
       payload.startAt = submittedFormData.startAt
       payload.endAt = submittedFormData.endAt
       payload.linkUrl = submittedFormData.linkUrl.trim()
-      if (existingImageUrl && !selectedImage) payload.imageUrl = existingImageUrl
     }
 
     setIsSubmitting(true)
     try {
       if (isEditMode) {
-        await updateCampaign(campaignId, payload)
+        await updateCampaign(campaignId, payload, selectedImage)
         navigate(`/campaigns/${campaignId}`, { replace: true, state: { notice: '캠페인을 수정했습니다.' } })
       } else {
-        const createdCampaign = await createCampaign(payload)
+        const createdCampaign = await createCampaign(payload, selectedImage)
         if (createdCampaign?.campaignId) {
           navigate(`/campaigns/${createdCampaign.campaignId}`, { replace: true, state: { notice: '캠페인을 등록했습니다.' } })
         } else {
@@ -279,7 +278,7 @@ function CampaignCreate() {
           <p className="mt-1 text-sm text-[#667085]">
             광고 콘텐츠와 캠페인 운영 기간을 설정합니다.
           </p>
-          {isOngoingEdit && <p role="status" className="mt-2 text-xs text-amber-700">진행 중 캠페인은 제목과 본문만 수정할 수 있습니다.</p>}
+          {isOngoingEdit && <p role="status" className="mt-2 text-xs text-amber-700">진행 중 캠페인은 제목, 본문과 배너 이미지만 수정할 수 있습니다.</p>}
         </div>
       </header>
 
@@ -293,8 +292,8 @@ function CampaignCreate() {
               <FormField id="body" label="광고 본문 문구" required error={errors.body}>
                 <textarea id="body" name="body" rows={3} value={formData.body} onChange={handleChange} aria-invalid={Boolean(errors.body)} aria-describedby={describedBy('body', errors.body)} className={`${inputClassName} resize-y`} placeholder="캠페인 메시지를 입력해 주세요." />
               </FormField>
-              <FormField id="imageFile" label="배너 이미지 파일" description={existingImageUrl ? '현재 이미지가 유지됩니다. 새 이미지 업로드는 API 준비 후 연결됩니다.' : '이미지 저장 API가 준비되면 파일 업로드를 연결합니다.'} error={errors.imageFile || imageError}>
-                <input ref={imageInputRef} id="imageFile" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} disabled={isOngoingEdit} aria-invalid={Boolean(errors.imageFile || imageError)} aria-describedby={errors.imageFile || imageError ? 'imageFile-error' : undefined} className="mt-1.5 block w-full rounded-lg border border-[#E5E5E5] bg-white px-3.5 py-3 text-sm text-[#232528] outline-none transition focus:border-[#0B7CFF] focus:ring-2 focus:ring-[#0B7CFF]/15 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#0B7CFF] disabled:bg-slate-50" />
+              <FormField id="imageFile" label="배너 이미지 파일" required={!isEditMode} description={existingImageUrl ? '새 이미지를 선택하지 않으면 현재 이미지를 유지합니다.' : 'PNG, JPG, WebP 형식의 5MB 이하 이미지를 선택해 주세요.'} error={errors.imageFile || imageError}>
+                <input ref={imageInputRef} id="imageFile" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} aria-invalid={Boolean(errors.imageFile || imageError)} aria-describedby={errors.imageFile || imageError ? 'imageFile-error' : undefined} className="mt-1.5 block w-full rounded-lg border border-[#E5E5E5] bg-white px-3.5 py-3 text-sm text-[#232528] outline-none transition focus:border-[#0B7CFF] focus:ring-2 focus:ring-[#0B7CFF]/15 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#0B7CFF] disabled:bg-slate-50" />
                 {selectedImage && (
                   <div className="mt-2 flex items-center justify-between gap-3 rounded-lg bg-[#F7F9FC] px-3 py-2 text-xs text-[#475467]">
                     <span className="min-w-0 truncate">{selectedImage.name} · {(selectedImage.size / (1024 * 1024)).toFixed(1)}MB</span>

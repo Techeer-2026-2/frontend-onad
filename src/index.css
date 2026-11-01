@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+@theme {
+  --color-onad-purple: #6C48F5;
+  --color-onad-dark: #2A2C41;
+  --color-onad-surface: #F3F4FB;
+}
+
+html {
+  background: #F3F4FB;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  font-family: Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif;
+}

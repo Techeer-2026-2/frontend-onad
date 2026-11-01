@@ -39,7 +39,7 @@ function validateForm(formData) {
 }
 
 const ageGroupValues = {
-  '전체': 'all',
+  '10대': '10s',
   '20대': '20s',
   '30대': '30s',
   '40대': '40s',
@@ -148,16 +148,10 @@ function CampaignCreate() {
 
   function toggleAgeGroup(ageGroup) {
     setSelectedAgeGroups((current) => {
-      if (ageGroup === '전체') {
-        return ['전체']
+      if (current.includes(ageGroup)) {
+        return current.filter((age) => age !== ageGroup)
       }
-
-      const withoutAll = current.filter((age) => age !== '전체')
-      if (withoutAll.includes(ageGroup)) {
-        const next = withoutAll.filter((age) => age !== ageGroup)
-        return next.length > 0 ? next : ['전체']
-      }
-      return [...withoutAll, ageGroup]
+      return [...current, ageGroup]
     })
   }
 
@@ -312,7 +306,7 @@ function CampaignCreate() {
               <fieldset disabled={isOngoingEdit} aria-describedby={errors.targetAgeGroups ? 'targetAgeGroups-error' : undefined}>
                 <legend className="text-xs font-bold text-[#232528]">연령대 타겟 <span className="font-normal text-[#667085]">(중복 선택 가능)</span></legend>
                 <div className="mt-2 flex flex-wrap gap-2">
-                {['전체', '20대', '30대', '40대', '50대+'].map((ageGroup) => {
+                {['10대', '20대', '30대', '40대', '50대+'].map((ageGroup) => {
                     const isSelected = selectedAgeGroups.includes(ageGroup)
                     return (
                       <button

@@ -1,17 +1,13 @@
 import {
-  ChartPie,
-  ListChecks,
-  PlusCircle,
-  UserCog,
   LogOut,
 } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { logout } from '../api/auth'
 
 const mainMenuItems = [
-  { label: '대시보드', path: '/dashboard', Icon: ChartPie },
-  { label: '캠페인 관리', path: '/campaigns', Icon: ListChecks },
-  { label: '캠페인 등록', path: '/campaigns/new', Icon: PlusCircle },
+  { label: 'Dashboard', path: '/dashboard' },
+  { label: 'Campaigns', path: '/campaigns' },
+  { label: 'Create', path: '/campaigns/new' },
 ]
 
 function Sidebar({ isOpen = false, onNavigate = () => {} }) {
@@ -29,16 +25,16 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
   }
 
   const linkClassName = ({ isActive }) =>
-    `flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
+    `rounded-full px-8 py-2.5 text-sm transition-all duration-200 ${
       isActive
-        ? 'bg-[#F0EDFF] text-[#6C48F5] shadow-sm'
-        : 'text-[#858296] hover:bg-[#F7F6FC] hover:text-[#2A2C41]'
+        ? 'bg-white font-bold text-[#6C48F5] shadow-sm'
+        : 'font-bold text-gray-500 hover:text-gray-800'
     }`
 
   return (
     <aside
       id="primary-sidebar"
-      className={`fixed inset-x-0 top-0 z-50 flex min-h-20 shrink-0 select-none items-center border-b border-[#F0EFF7] bg-white px-5 transition-transform duration-200 md:static md:translate-x-0 md:px-10 ${isOpen ? 'translate-y-0' : '-translate-y-full md:translate-y-0'}`}
+      className={`fixed inset-x-0 top-0 z-50 flex h-24 shrink-0 select-none items-center border-b border-[#F0EFF7] bg-white px-5 transition-transform duration-200 md:static md:translate-x-0 md:px-10 ${isOpen ? 'translate-y-0' : '-translate-y-full md:translate-y-0'}`}
     >
       <button
         type="button"
@@ -49,14 +45,15 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
         aria-label="ONAD 대시보드로 이동"
         className="flex shrink-0 items-center gap-2 text-left"
       >
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6C48F5] text-lg font-black tracking-wider text-white shadow-lg shadow-[#6C48F5]/25">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#6C48F5] text-base font-black tracking-wider text-white shadow-lg shadow-[#6C48F5]/25">
           O
         </span>
-        <span className="text-xl font-bold tracking-tight text-[#6C48F5]">ONAD</span>
+        <span className="text-[26px] font-bold tracking-tight text-[#6C48F5]">ONAD</span>
+        <sup className="-ml-1 self-start pt-2 text-[8px] font-semibold text-[#AAA7B6]">™</sup>
       </button>
 
-      <nav aria-label="메인 메뉴" className="mx-auto hidden items-center gap-1 md:flex">
-        {mainMenuItems.map(({ label, path, Icon }) => (
+      <nav aria-label="메인 메뉴" className="absolute left-1/2 hidden -translate-x-1/2 items-center rounded-full border border-gray-100 bg-gray-50/80 p-1.5 shadow-sm backdrop-blur-sm md:flex">
+        {mainMenuItems.map(({ label, path }) => (
           <NavLink
             key={path}
             to={path}
@@ -64,25 +61,35 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
             onClick={onNavigate}
             className={linkClassName}
           >
-            <Icon size={15} aria-hidden="true" />
             <span>{label}</span>
           </NavLink>
         ))}
-        <NavLink to="/account" onClick={onNavigate} className={linkClassName}>
-          <UserCog size={15} aria-hidden="true" />
-          <span>내 정보</span>
-        </NavLink>
       </nav>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-3">
         <button
           type="button"
           onClick={handleLogout}
-          className="flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs text-[#858296] transition-colors hover:bg-[#F7F6FC] hover:text-[#6C48F5]"
+          aria-label="로그아웃"
+          className="group relative flex h-10 w-10 items-center justify-center rounded-lg text-[#858296] transition-colors hover:bg-[#F7F6FC] hover:text-[#6C48F5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
         >
           <LogOut size={14} aria-hidden="true" />
-          <span className="hidden lg:inline">로그아웃</span>
+          <span role="tooltip" className="pointer-events-none absolute right-0 top-[calc(100%+0.5rem)] z-60 whitespace-nowrap rounded-md bg-[#2A2C41] px-2 py-1 text-[11px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            로그아웃
+          </span>
         </button>
+        <NavLink
+          to="/account"
+          onClick={onNavigate}
+          aria-label="내 정보"
+          title="내 정보"
+          className="group relative flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-[#2A2C41] text-sm font-bold text-white shadow-md ring-1 ring-[#E8E6F2] transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
+        >
+          OA
+          <span role="tooltip" className="pointer-events-none absolute right-0 top-[calc(100%+0.5rem)] z-60 whitespace-nowrap rounded-md bg-[#2A2C41] px-2 py-1 text-[11px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            내 정보
+          </span>
+        </NavLink>
       </div>
     </aside>
   )

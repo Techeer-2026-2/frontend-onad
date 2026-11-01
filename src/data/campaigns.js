@@ -1,35 +1,46 @@
-// Dashboard demonstration data from the provided HTML reference; not API data.
-const campaigns = [
+// Fallback data used only when the campaign API successfully returns no campaigns.
+// Keep this shape aligned with CampaignTable so every page can share the same mock state.
+export const mockCampaigns = [
   {
-    id: 'CAMP-2026-0920',
-    name: '[컴백] BLACKPINK - KILL THIS LOVE 싱글 배너',
-    status: 'active',
-    period: '2026.09.20 ~ 2026.10.10',
-    sent: 12847,
-    clicks: 1203,
-    ctr: 15.2,
+    id: 'mock-summer-release',
+    name: 'ONBEAT 여름 신곡 프로모션',
+    status: 'ONGOING',
     targetAudience: '20대, 30대 (전체 성별)',
+    sent: 1205000,
+    clicks: 40260,
+    ctr: 3.34,
+    period: '2026. 7. 1. ~ 2026. 8. 31.',
   },
   {
-    id: 'CAMP-2026-0915',
-    name: '[콘서트] TikTok Stage VOICE ON 라이브',
-    status: 'active',
-    period: '2026.09.15 ~ 2026.09.30',
-    sent: 8430,
-    clicks: 1080,
-    ctr: 12.8,
-    targetAudience: '20대, 30대, 40대 (여성)',
-  },
-  {
-    id: 'CAMP-2026-0928',
-    name: '[예약] NewJeans 가을 프로모션 스페셜',
-    status: 'pending',
-    period: '2026.09.28 ~ 2026.10.20',
+    id: 'mock-indie-festival',
+    name: '인디 밴드 페스티벌 티켓 오픈',
+    status: 'PENDING',
+    targetAudience: '20대, 30대 (전체 성별)',
     sent: 0,
     clicks: 0,
     ctr: 0,
-    targetAudience: '전체 연령대',
+    period: '2026. 9. 1. ~ 2026. 9. 30.',
+  },
+  {
+    id: 'mock-headphone-event',
+    name: '프리미엄 헤드폰 브랜드 기획전',
+    status: 'ONGOING',
+    targetAudience: '20대, 30대 (남성)',
+    sent: 840000,
+    clicks: 25200,
+    ctr: 3,
+    period: '2026. 7. 15. ~ 2026. 8. 15.',
+  },
+  {
+    id: 'mock-spring-playlist',
+    name: '봄맞이 플레이리스트 스폰서십',
+    status: 'ENDED',
+    targetAudience: '전체 연령 (전체 성별)',
+    sent: 3100000,
+    clicks: 77500,
+    ctr: 2.5,
+    period: '2026. 3. 1. ~ 2026. 4. 30.',
   },
 ]
 
-export default campaigns
+export default mockCampaigns

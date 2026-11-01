@@ -53,19 +53,19 @@ function CampaignHistoryPanel() {
   }
 
   return (
-      <section className="overflow-hidden rounded-xl border border-[#E5E5E5] bg-white shadow-sm" aria-busy={isLoading}>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5E5E5] p-5">
+      <section className="overflow-hidden rounded-2xl border border-[#ECEAF5] bg-white shadow-sm" aria-busy={isLoading}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F0EFF7] px-5 py-5 md:px-7">
           <div>
-            <h2 className="text-base font-bold text-[#232528]">종료된 캠페인</h2>
-            <p className="mt-0.5 text-xs text-[#364964]">최근 종료된 순으로 타겟 조건과 성과를 확인할 수 있습니다.</p>
+            <h2 className="text-base font-bold tracking-tight text-[#2A2C41]">종료된 캠페인</h2>
+            <p className="mt-1 text-xs text-[#858296]">최근 종료된 순으로 타겟 조건과 성과를 확인할 수 있습니다.</p>
           </div>
-          <label className="flex items-center gap-2 text-xs text-[#667085]">
+          <label className="flex items-center gap-2 text-xs text-[#858296]">
             표시 개수
             <select
               value={request.size}
               disabled={isLoading}
               onChange={(event) => setRequest({ page: 0, size: Number(event.target.value) })}
-              className="rounded-lg border border-[#D0D5DD] bg-white px-2 py-2 text-[#344054] disabled:opacity-50"
+              className="rounded-lg border border-[#E4E1F0] bg-white px-2 py-2 text-[#5D5A6E] outline-none focus:border-[#6C48F5] disabled:opacity-50"
             >
               {[20, 50, 100].map((size) => <option key={size} value={size}>{size}개</option>)}
             </select>
@@ -79,18 +79,18 @@ function CampaignHistoryPanel() {
           onRetry={() => setRequest((current) => ({ ...current }))}
         />
 
-        <nav aria-label="캠페인 이력 페이지" className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E5E5E5] px-5 py-4">
-          <p className="text-xs text-[#667085]" aria-live="polite">
+        <nav aria-label="캠페인 이력 페이지" className="flex flex-wrap items-center justify-between gap-3 border-t border-[#F0EFF7] px-5 py-4 md:px-7">
+          <p className="text-xs text-[#858296]" aria-live="polite">
             {data ? '총 ' + data.totalElements.toLocaleString('ko-KR') + '건' : isLoading ? '조회 중…' : '조회 실패'}
           </p>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => changePage(request.page - 1)} disabled={isLoading || request.page === 0} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#D0D5DD] px-3 text-xs font-semibold text-[#344054] hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => changePage(request.page - 1)} disabled={isLoading || request.page === 0} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#E4E1F0] px-3 text-xs font-semibold text-[#5D5A6E] hover:bg-[#F7F6FC] disabled:cursor-not-allowed disabled:opacity-50">
               <ChevronLeft size={15} aria-hidden="true" /> 이전
             </button>
-            <span className="text-xs text-[#344054]">
+            <span className="text-xs text-[#5D5A6E]">
               {data ? (data.totalPages === 0 ? '0 / 0' : (data.page + 1) + ' / ' + data.totalPages) : (request.page + 1) + ' 페이지'}
             </span>
-            <button type="button" onClick={() => changePage(request.page + 1)} disabled={isLoading || !data || data.page + 1 >= data.totalPages} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#D0D5DD] px-3 text-xs font-semibold text-[#344054] hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => changePage(request.page + 1)} disabled={isLoading || !data || data.page + 1 >= data.totalPages} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#E4E1F0] px-3 text-xs font-semibold text-[#5D5A6E] hover:bg-[#F7F6FC] disabled:cursor-not-allowed disabled:opacity-50">
               다음 <ChevronRight size={15} aria-hidden="true" />
             </button>
           </div>

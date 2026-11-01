@@ -15,3 +15,28 @@ body {
   margin: 0;
   font-family: Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif;
 }
+
+.onad-scrollbar {
+  scrollbar-color: #CBD5E1 transparent;
+  scrollbar-width: thin;
+}
+
+.onad-scrollbar::-webkit-scrollbar {
+  width: 12px;
+}
+
+.onad-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.onad-scrollbar::-webkit-scrollbar-thumb {
+  min-height: 80px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: #CBD5E1;
+}
+
+.onad-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #B8C5D4;
+}

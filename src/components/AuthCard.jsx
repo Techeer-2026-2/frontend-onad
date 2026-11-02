@@ -24,8 +24,8 @@ function AuthCard({ title, subtitle, children, footer }) {
           </div>
         </aside>
 
-        <div className="flex min-h-0 items-center justify-center overflow-hidden p-5 sm:p-6 lg:p-8">
-          <div className="flex w-full max-w-[34rem] flex-col gap-4">
+        <div className="flex min-h-0 items-center justify-center overflow-hidden p-5 sm:p-6 lg:p-6">
+          <div className="flex w-full max-w-[42rem] flex-col gap-4">
             <header className="space-y-2">
               <p className="text-xs font-bold tracking-[0.14em] text-[#6C48F5]">ONAD</p>
               <h1 className="text-3xl font-extrabold tracking-tight text-[#2A2C41]">{title}</h1>

@@ -51,7 +51,7 @@ function mapDashboardCampaign(campaign, detail) {
 }
 
 const presetOptions = [
-  ['30days', '이번 달 (This month)'],
+  ['30days', '이번 달'],
   ['yesterday', '어제'],
   ['7days', '최근 7일'],
   ['custom', '직접 설정'],

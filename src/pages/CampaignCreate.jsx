@@ -73,7 +73,7 @@ function FormField({ id, label, required = false, description, error, children }
 function SectionCard({ number, title, children }) {
   return (
     <section className="space-y-5 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
-      <h2 className="flex items-center gap-2 text-lg font-bold text-gray-800">
+      <h2 className="flex items-center gap-2 text-xl font-bold text-gray-800">
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#6C48F5]/10 text-xs text-[#6C48F5]">{number.replace(/^0/, '')}</span>{title}
       </h2>
       {children}
@@ -96,6 +96,7 @@ function CampaignCreate() {
   const [selectedAgeGroups, setSelectedAgeGroups] = useState(['20대', '30대'])
   const [selectedGenders, setSelectedGenders] = useState(['전체'])
   const [existingImageUrl, setExistingImageUrl] = useState('')
+  const [campaignStatus, setCampaignStatus] = useState('')
   const [isLoadingCampaign, setIsLoadingCampaign] = useState(isEditMode)
   const [loadError, setLoadError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -113,6 +114,7 @@ function CampaignCreate() {
         endAt: toDateTimeInput(mockCampaign.endAt),
       })
       setExistingImageUrl(mockCampaign.imageUrl || '')
+      setCampaignStatus(mockCampaign.status || '')
       setSelectedAgeGroups(Array.isArray(mockCampaign.targetAgeGroups)
         ? mockCampaign.targetAgeGroups.map((value) => Object.entries(ageGroupValues).find(([, code]) => code === value)?.[0]).filter(Boolean)
         : [])
@@ -135,6 +137,7 @@ function CampaignCreate() {
           endAt: toDateTimeInput(campaign.endAt),
         })
         setExistingImageUrl(campaign.imageUrl || '')
+        setCampaignStatus(campaign.status || '')
         setSelectedAgeGroups(Array.isArray(campaign.targetAgeGroups)
           ? campaign.targetAgeGroups.map((value) => Object.entries(ageGroupValues).find(([, code]) => code === value)?.[0]).filter(Boolean)
           : [])
@@ -264,8 +267,8 @@ function CampaignCreate() {
   }
 
   const describedBy = (id, error) => error ? `${id}-error` : undefined
-  const previewTitle = formData.title.trim() || '캠페인 타이틀이 여기에 표시됩니다'
-  const previewBody = formData.body.trim() || '캠페인 설명을 입력하면 미리보기에 실시간으로 반영됩니다.'
+  const previewTitle = formData.title.trim() || '광고 타이틀'
+  const previewBody = formData.body.trim() || '광고 본문 문구'
 
   if (isLoadingCampaign) {
     return <p role="status" className="rounded-xl border border-[#E5E5E5] bg-white px-6 py-16 text-center text-sm text-[#667085]">캠페인 정보를 불러오는 중입니다…</p>
@@ -273,6 +276,10 @@ function CampaignCreate() {
 
   if (loadError) {
     return <section className="rounded-xl border border-red-200 bg-white px-6 py-12 text-center"><p role="alert" className="text-sm text-red-700">{loadError}</p><Link to={`/campaigns/${campaignId}`} className="mt-4 inline-flex text-sm font-semibold text-[#0B7CFF]">캠페인 상세로</Link></section>
+  }
+
+  if (isEditMode && campaignStatus === 'ENDED') {
+    return <section className="rounded-xl border border-[#E5E5E5] bg-white px-6 py-12 text-center"><p role="alert" className="text-sm text-[#667085]">종료된 캠페인은 수정할 수 없습니다.</p><Link to={`/campaigns/${campaignId}`} className="mt-4 inline-flex text-sm font-semibold text-[#6C48F5]">캠페인 상세로</Link></section>
   }
 
   return (
@@ -300,8 +307,8 @@ function CampaignCreate() {
         <form noValidate onSubmit={handleSubmit} className="flex-1 space-y-6">
           <SectionCard number="01" title="기본 광고 정보 설정">
             <div className="space-y-4">
-              <FormField id="title" label="광고 타이틀 (헤드라인)" required error={errors.title}>
-                <input id="title" name="title" value={formData.title} onChange={handleChange} aria-invalid={Boolean(errors.title)} aria-describedby={describedBy('title', errors.title)} className={inputClassName} placeholder="예: 새로운 음악을 만나보세요" />
+              <FormField id="title" label="광고 타이틀" required error={errors.title}>
+                <input id="title" name="title" value={formData.title} onChange={handleChange} aria-invalid={Boolean(errors.title)} aria-describedby={describedBy('title', errors.title)} className={inputClassName} placeholder="예: 인디 밴드 페스티벌 티켓 오픈" />
               </FormField>
               <FormField id="body" label="광고 본문 문구" required error={errors.body}>
                 <textarea id="body" name="body" rows={3} value={formData.body} onChange={handleChange} aria-invalid={Boolean(errors.body)} aria-describedby={describedBy('body', errors.body)} className={`${inputClassName} resize-y`} placeholder="캠페인 메시지를 입력해 주세요." />
@@ -315,7 +322,7 @@ function CampaignCreate() {
                   </div>
                 )}
               </FormField>
-              <FormField id="linkUrl" label="랜딩 페이지 URL" description="배너 클릭 시 연결할 주소입니다. 선택 입력 항목입니다." error={errors.linkUrl}>
+              <FormField id="linkUrl" label="랜딩 페이지 URL" description="배너 클릭 시 연결할 주소입니다." error={errors.linkUrl}>
                 <input id="linkUrl" name="linkUrl" type="url" value={formData.linkUrl} onChange={handleChange} aria-invalid={Boolean(errors.linkUrl)} aria-describedby={describedBy('linkUrl', errors.linkUrl)} className={`${inputClassName} font-mono text-xs`} placeholder="https://example.com" />
               </FormField>
             </div>

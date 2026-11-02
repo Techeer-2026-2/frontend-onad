@@ -186,7 +186,7 @@ function Register() {
               disabled={isSubmitting}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#6C48F5] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#6C48F5]/25 transition-colors hover:bg-[#5839DB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? '가입 중…' : '광고주 계정 만들기'}
+              {isSubmitting ? '가입 중…' : '계정 만들기'}
               {!isSubmitting && <ArrowRight size={14} aria-hidden="true" />}
             </button>
           </form>

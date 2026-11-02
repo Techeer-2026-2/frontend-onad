@@ -156,7 +156,7 @@ function Login() {
               '로그인 중…'
             ) : (
               <span className="flex items-center justify-center gap-2">
-                광고주 포털 접속
+                로그인
                 <ArrowRight size={14} aria-hidden="true" />
               </span>
             )}

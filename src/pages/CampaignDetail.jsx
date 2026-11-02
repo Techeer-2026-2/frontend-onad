@@ -173,7 +173,7 @@ function CampaignDetail() {
         </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           <div className="flex flex-wrap items-center gap-2">
-            {!isMockCampaign && <>
+            {!isMockCampaign && campaign.status !== 'ENDED' && <>
               <Link to={`/campaigns/${campaignId}/edit`} className="inline-flex min-h-8 items-center rounded-lg border border-[#DED9FA] bg-[#F8F7FF] px-3 text-xs font-semibold text-[#6C48F5] hover:bg-[#F0EDFF]">캠페인 수정</Link>
               <button type="button" disabled title="캠페인 발송/상태 변경 API는 Swagger에 없습니다." className="min-h-8 cursor-not-allowed rounded-lg bg-[#2A2C41] px-3 text-xs font-semibold text-white/50">{campaign.status === 'ONGOING' ? '캠페인 일시정지' : '캠페인 재개'}</button>
               <button type="button" onClick={handleDelete} disabled={isDeleting} className="min-h-8 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60">{isDeleting ? '삭제 중…' : '캠페인 삭제'}</button>
@@ -198,7 +198,7 @@ function CampaignDetail() {
           <section className="space-y-5 rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center justify-between gap-3 border-b border-[#F0EFF7] pb-3">
               <h2 className="flex items-center gap-2 text-sm font-bold text-[#2A2C41]"><ChartNoAxesColumnIncreasing size={16} className="text-[#6C48F5]" aria-hidden="true" /> 캠페인 상세 설정 정보</h2>
-              <Link to={`/campaigns/${campaignId}/edit`} className="rounded-lg bg-[#F0EDFF] px-3.5 py-2 text-xs font-bold text-[#6C48F5] shadow-sm transition hover:bg-[#DED9FA]">설정 수정</Link>
+            {campaign.status !== 'ENDED' && <Link to={`/campaigns/${campaignId}/edit`} className="rounded-lg bg-[#F0EDFF] px-3.5 py-2 text-xs font-bold text-[#6C48F5] shadow-sm transition hover:bg-[#DED9FA]">설정 수정</Link>}
             </div>
             <div className="space-y-4">
               <div className="rounded-xl bg-[#FAFAFD] px-4 py-3.5">

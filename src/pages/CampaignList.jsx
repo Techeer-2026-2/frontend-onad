@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import CampaignHistoryPanel from '../components/CampaignHistoryPanel'
 import CampaignTable from '../components/CampaignTable'
 import { getCampaigns } from '../api/campaigns'
+import { mockCampaigns } from '../mock/campaigns'
 
 function formatTargetAudience(ageGroups, genders) {
   const ages = Array.isArray(ageGroups)
@@ -28,10 +29,12 @@ function formatCampaignPeriod(startAt, endAt) {
 function AllCampaignsPanel() {
   const [campaigns, setCampaigns] = useState([])
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(5)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [retryCount, setRetryCount] = useState(0)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -64,14 +67,50 @@ function AllCampaignsPanel() {
     return () => controller.abort()
   }, [retryCount])
 
-  const totalPages = Math.ceil(campaigns.length / pageSize)
-  const visibleCampaigns = campaigns.slice(page * pageSize, (page + 1) * pageSize)
+  const displayCampaigns = campaigns.length > 0 ? campaigns : mockCampaigns
+  const filteredCampaigns = displayCampaigns.filter((campaign) => {
+    const normalizedStatus = campaign.status === 'ONGOING' || campaign.status === 'active' ? 'ongoing'
+      : campaign.status === 'ENDED' || campaign.status === 'ended' ? 'ended' : 'pending'
+    return (statusFilter === 'all' || normalizedStatus === statusFilter)
+      && campaign.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
+  })
+  const totalPages = Math.ceil(filteredCampaigns.length / pageSize)
+  const visibleCampaigns = filteredCampaigns.slice(page * pageSize, (page + 1) * pageSize)
 
   return (
-    <CampaignTable
+    <div className="space-y-10">
+      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+        <div className="inline-flex w-fit rounded-xl bg-[#F4F4F6] p-1.5 text-sm font-semibold">
+          {[
+            ['all', '전체 캠페인'],
+            ['ongoing', '진행중'],
+            ['ended', '종료됨'],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => { setStatusFilter(value); setPage(0) }}
+              className={`rounded-lg px-5 py-2.5 transition ${statusFilter === value ? 'bg-white text-[#1F2937] shadow-sm' : 'text-[#858296] hover:text-[#2A2C41]'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-[#E8E6F2] bg-white px-4 text-[#9A97A7] sm:w-[34rem]">
+          <Search size={20} aria-hidden="true" />
+          <span className="sr-only">캠페인명 검색</span>
+          <input
+            value={searchTerm}
+            onChange={(event) => { setSearchTerm(event.target.value); setPage(0) }}
+            placeholder="캠페인명 검색..."
+            className="min-w-0 flex-1 bg-transparent text-sm text-[#2A2C41] outline-none placeholder:text-[#B0ADBC]"
+          />
+        </label>
+      </div>
+      <CampaignTable
       campaigns={visibleCampaigns}
-      title="전체 캠페인"
-      description="캠페인별 운영 상태와 타겟 연령, 운영 기간을 확인할 수 있습니다."
+      title=""
+      hideDescription
       showAllLink={false}
       isLoading={isLoading}
       errorMessage={errorMessage}
@@ -83,7 +122,7 @@ function AllCampaignsPanel() {
       pagination={{
         page,
         pageSize,
-        totalElements: campaigns.length,
+        totalElements: filteredCampaigns.length,
         totalPages,
         onPageChange: setPage,
         onPageSizeChange: (size) => {
@@ -91,7 +130,10 @@ function AllCampaignsPanel() {
           setPage(0)
         },
       }}
+      management
+      hideHeader
     />
+    </div>
   )
 }
 
@@ -100,41 +142,23 @@ function CampaignList() {
   const showHistory = searchParams.get('tab') === 'history'
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto max-w-7xl space-y-7">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0B7CFF]">
-            ONAD ADVERTISER PORTAL
-          </p>
-          <h1 className="mt-2 text-2xl font-bold text-[#232528]">캠페인 관리</h1>
-          <p className="mt-1 text-sm text-[#667085]">
-            등록된 광고 캠페인의 상태와 성과를 확인하세요.
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#111827]">캠페인 관리</h1>
+          <p className="mt-2 text-sm text-[#6B7280]">
+            모든 광고 캠페인의 성과를 상세히 확인하고 관리하세요.
           </p>
         </div>
         <Link
           to="/campaigns/new"
-          className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-lg bg-[#0B7CFF] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF] sm:self-auto"
+          className="inline-flex min-h-12 items-center justify-center gap-2 self-start rounded-xl bg-[#6C48F5] px-7 py-2 text-sm font-bold text-white shadow-lg shadow-[#6C48F5]/25 transition-colors hover:bg-[#5839DB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5] sm:mt-1 sm:self-auto"
         >
           <Plus size={16} aria-hidden="true" />
-          캠페인 등록
+          새 캠페인 등록
         </Link>
       </header>
 
-      <nav aria-label="캠페인 목록 구분" className="flex w-fit max-w-full gap-1 rounded-xl border border-[#E5E5E5] bg-white p-1 text-sm font-semibold">
-        {[
-          { label: '전체 캠페인', to: '/campaigns', active: !showHistory },
-          { label: '종료된 캠페인', to: '/campaigns?tab=history', active: showHistory },
-        ].map(({ label, to, active }) => (
-          <Link
-            key={to}
-            to={to}
-            aria-current={active ? 'page' : undefined}
-            className={'rounded-lg px-4 py-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0B7CFF] ' + (active ? 'bg-[#0B7CFF] text-white' : 'text-[#667085] hover:bg-slate-50')}
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
       {showHistory ? <CampaignHistoryPanel /> : <AllCampaignsPanel />}
     </div>
   )

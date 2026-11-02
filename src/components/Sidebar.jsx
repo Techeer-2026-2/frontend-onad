@@ -1,21 +1,44 @@
 import {
-  ChartPie,
-  ListChecks,
-  PlusCircle,
-  UserCog,
   LogOut,
 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { logout } from '../api/auth'
+import { getMyAccount } from '../api/owners'
 
 const mainMenuItems = [
-  { label: '대시보드', path: '/dashboard', Icon: ChartPie },
-  { label: '캠페인 관리', path: '/campaigns', Icon: ListChecks },
-  { label: '캠페인 등록', path: '/campaigns/new', Icon: PlusCircle },
+  { label: 'Dashboard', path: '/dashboard' },
+  { label: 'Campaigns', path: '/campaigns' },
+  { label: 'Create', path: '/campaigns/new' },
 ]
 
 function Sidebar({ isOpen = false, onNavigate = () => {} }) {
   const navigate = useNavigate()
+  const [profileInitial, setProfileInitial] = useState('OA')
+  const hasLocalProfileChange = useRef(false)
+
+  useEffect(() => {
+    let active = true
+    function updateProfileInitial(event) {
+      const initial = event.detail?.businessName?.trim().slice(0, 1).toUpperCase()
+      if (initial) {
+        hasLocalProfileChange.current = true
+        setProfileInitial(initial)
+      }
+    }
+
+    getMyAccount()
+      .then((account) => {
+        const initial = account?.businessName?.trim().slice(0, 1).toUpperCase()
+        if (active && initial && !hasLocalProfileChange.current) setProfileInitial(initial)
+      })
+      .catch(() => {})
+    window.addEventListener('account-updated', updateProfileInitial)
+    return () => {
+      active = false
+      window.removeEventListener('account-updated', updateProfileInitial)
+    }
+  }, [])
 
   async function handleLogout() {
     try {
@@ -29,16 +52,16 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
   }
 
   const linkClassName = ({ isActive }) =>
-    `flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
+    `rounded-full px-8 py-2.5 text-sm transition-all duration-200 ${
       isActive
-        ? 'bg-[#0B7CFF] text-white'
-        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+        ? 'bg-white font-bold text-[#6C48F5] shadow-sm'
+        : 'font-bold text-gray-500 hover:text-gray-800'
     }`
 
   return (
     <aside
       id="primary-sidebar"
-      className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 select-none flex-col border-r border-gray-800 bg-[#0C0C0D] text-white transition-transform duration-200 md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      className={`fixed inset-x-0 top-0 z-50 flex h-24 shrink-0 select-none items-center border-b border-[#F0EFF7] bg-white px-5 transition-transform duration-200 md:static md:translate-x-0 md:px-10 ${isOpen ? 'translate-y-0' : '-translate-y-full md:translate-y-0'}`}
     >
       <button
         type="button"
@@ -47,26 +70,14 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
           onNavigate()
         }}
         aria-label="ONAD 대시보드로 이동"
-        className="flex items-center gap-3 border-b border-gray-800 p-6 text-left"
+        className="flex shrink-0 items-center gap-2 text-left"
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0B7CFF] text-l font-bold tracking-wider shadow-md">
-          OA
-        </span>
-        <span>
-          <span className="block text-lg font-bold leading-none tracking-wider">
-            ONAD
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-tight text-[#1DB954]">
-            ADVERTISER PORTAL
-          </span>
-        </span>
+        <span className="text-[26px] font-bold tracking-tight text-[#6C48F5]">ONAD</span>
+        <sup className="-ml-1 self-start pt-2 text-[8px] font-semibold text-[#AAA7B6]">™</sup>
       </button>
 
-      <nav aria-label="메인 메뉴" className="flex-1 space-y-1 overflow-y-auto px-4 py-6">
-        <p className="px-3 pb-2 text-[11px] font-semibold tracking-wider text-gray-400">
-          메인 메뉴
-        </p>
-        {mainMenuItems.map(({ label, path, Icon }) => (
+      <nav aria-label="메인 메뉴" className="absolute left-1/2 hidden -translate-x-1/2 items-center rounded-full border border-gray-100 bg-gray-50/80 p-1.5 shadow-sm backdrop-blur-sm md:flex">
+        {mainMenuItems.map(({ label, path }) => (
           <NavLink
             key={path}
             to={path}
@@ -74,44 +85,35 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
             onClick={onNavigate}
             className={linkClassName}
           >
-            <Icon size={18} aria-hidden="true" />
             <span>{label}</span>
           </NavLink>
         ))}
-
-        <p className="px-3 pb-2 pt-6 text-[11px] font-semibold tracking-wider text-gray-400">
-          계정 및 설정
-        </p>
-        <NavLink to="/account" onClick={onNavigate} className={linkClassName}>
-          <UserCog size={18} aria-hidden="true" />
-          <span>내 정보</span>
-        </NavLink>
       </nav>
 
-      <div className="border-t border-gray-800 bg-[#080809] p-4">
-        <div className="space-y-2 rounded-lg border border-gray-800 bg-gray-900 p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-400">플랜 상태</span>
-            <span className="rounded border border-[#1DB954]/30 bg-[#1DB954]/20 px-2 py-0.5 text-[10px] font-bold text-[#1DB954]">
-              ACTIVE
-            </span>
-          </div>
-          <div className="text-xs font-bold text-gray-200">
-            ONAD 광고 관리 서비스
-          </div>
-          <div className="text-[11px] text-gray-400">
-            타겟 광고 배너 관리
-          </div>
-        </div>
-
+      <div className="ml-auto flex items-center gap-3">
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-3 flex w-full items-center justify-center gap-2 py-1 text-xs text-gray-400 transition-colors hover:text-white"
+          aria-label="로그아웃"
+          className="group relative flex h-10 w-10 items-center justify-center rounded-lg text-[#858296] transition-colors hover:bg-[#F7F6FC] hover:text-[#6C48F5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
         >
-          <LogOut size={15} aria-hidden="true" />
-          <span>로그아웃</span>
+          <LogOut size={14} aria-hidden="true" />
+          <span role="tooltip" className="pointer-events-none absolute right-0 top-[calc(100%+0.5rem)] z-60 whitespace-nowrap rounded-md bg-[#2A2C41] px-2 py-1 text-[11px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            로그아웃
+          </span>
         </button>
+        <NavLink
+          to="/account"
+          onClick={onNavigate}
+          aria-label="내 정보"
+          title="내 정보"
+          className="group relative flex h-12 w-12 items-center justify-center rounded-full border-white bg-[#2A2C41] text-sm font-bold text-white shadow-md ring-1 ring-[#E8E6F2] transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
+        >
+          {profileInitial}
+          <span role="tooltip" className="pointer-events-none absolute right-0 top-[calc(100%+0.5rem)] z-60 whitespace-nowrap rounded-md bg-[#2A2C41] px-2 py-1 text-[11px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            내 정보
+          </span>
+        </NavLink>
       </div>
     </aside>
   )

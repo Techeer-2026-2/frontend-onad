@@ -1,0 +1,63 @@
+// Detail-page fallback data for the mock campaign rows in CampaignTable.
+export const mockCampaignDetails = [
+  {
+    campaignId: 'mock-summer-release',
+    title: 'ONBEAT 여름 신곡 프로모션',
+    body: '여름 시즌에 맞춘 ONBEAT 신곡 프로모션을 지금 만나보세요.',
+    status: 'ONGOING',
+    targetAgeGroups: ['20s', '30s'],
+    targetGenders: ['all'],
+    startAt: '2026-07-01T00:00:00',
+    endAt: '2026-08-31T23:59:59',
+    linkUrl: 'https://onad.example.com/summer-release',
+    imageUrl: null,
+    impressionCount: 1205000,
+    clickCount: 40260,
+  },
+  {
+    campaignId: 'mock-indie-festival',
+    title: '인디 밴드 페스티벌 티켓 오픈',
+    body: '인디 밴드 페스티벌 티켓 오픈 소식을 청취자에게 알려보세요.',
+    status: 'PENDING',
+    targetAgeGroups: ['20s', '30s'],
+    targetGenders: ['all'],
+    startAt: '2026-09-01T00:00:00',
+    endAt: '2026-09-30T23:59:59',
+    linkUrl: 'https://onad.example.com/indie-festival',
+    imageUrl: null,
+    impressionCount: 0,
+    clickCount: 0,
+  },
+  {
+    campaignId: 'mock-redvelvet-event',
+    title: 'RedVelvet COMEBACK SHOWCASE',
+    body: 'RedVelvet의 COMEBACK SHOWCASE를 음악 팬들에게 소개합니다.',
+    status: 'ONGOING',
+    targetAgeGroups: ['20s', '30s'],
+    targetGenders: ['female'],
+    startAt: '2026-07-15T00:00:00',
+    endAt: '2026-08-15T23:59:59',
+    linkUrl: 'https://onad.example.com/redvelvet-event',
+    imageUrl: null,
+    impressionCount: 840000,
+    clickCount: 25200,
+  },
+  {
+    campaignId: 'mock-spring-playlist',
+    title: '봄맞이 플레이리스트 스폰서십',
+    body: '봄 분위기에 어울리는 플레이리스트 스폰서십 캠페인입니다.',
+    status: 'ENDED',
+    targetAgeGroups: ['all'],
+    targetGenders: ['all'],
+    startAt: '2026-03-01T00:00:00',
+    endAt: '2026-04-30T23:59:59',
+    linkUrl: 'https://onad.example.com/spring-playlist',
+    imageUrl: null,
+    impressionCount: 3100000,
+    clickCount: 77500,
+  },
+]
+
+export function getMockCampaignDetail(campaignId) {
+  return mockCampaignDetails.find((campaign) => campaign.campaignId === campaignId) || null
+}

@@ -1,1 +1,62 @@
 @import "tailwindcss";
+
+@theme {
+  --color-onad-purple: #6C48F5;
+  --color-onad-dark: #2A2C41;
+  --color-onad-surface: #F3F4FB;
+}
+
+html {
+  background: #F3F4FB;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  font-family: Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif;
+}
+
+/* Account page: profile at left, campaign summaries at right. */
+.account-overview-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.7fr);
+  gap: 1.5rem;
+}
+
+.account-campaign-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 767px) {
+  .account-overview-layout,
+  .account-campaign-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.onad-scrollbar {
+  scrollbar-color: #CBD5E1 transparent;
+  scrollbar-width: thin;
+}
+
+.onad-scrollbar::-webkit-scrollbar {
+  width: 12px;
+}
+
+.onad-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.onad-scrollbar::-webkit-scrollbar-thumb {
+  min-height: 80px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: #CBD5E1;
+}
+
+.onad-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #B8C5D4;
+}

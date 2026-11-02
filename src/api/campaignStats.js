@@ -4,8 +4,8 @@ const RETRY_DELAY_MS = 3000
 
 function parseStats(payload) {
   if (!payload || typeof payload !== 'object') return null
-  // The Swagger PDF describes stats events as JSON, but does not publish a
-  // concrete event schema. Support the existing campaign-detail field names.
+  // Swagger defines the event name and JSON transport but not the inner schema.
+  // The campaign detail response currently uses these matching count fields.
   const stats = payload.data && typeof payload.data === 'object' ? payload.data : payload
   const { impressionCount, clickCount } = stats
   if (!Number.isFinite(impressionCount) || impressionCount < 0 ||
@@ -50,7 +50,7 @@ export async function subscribeCampaignStats(campaignId, { signal, onStats, onSt
       let eventName = ''
       let dataLines = []
       function dispatchEvent() {
-        if ((eventName === '' || eventName === 'stats') && dataLines.length) {
+        if (eventName === 'stats' && dataLines.length) {
           try {
             const parsed = parseStats(JSON.parse(dataLines.join('\n')))
             if (parsed) onStats(parsed)

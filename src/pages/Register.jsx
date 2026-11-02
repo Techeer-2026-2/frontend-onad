@@ -61,13 +61,12 @@ function Register() {
   return (
     <AuthCard
       title="신규 사업자 회원가입"
-      subtitle="광고 캠페인 관리를 위한 광고주 계정을 만듭니다."
       footer={!isRegistered && (
         <>
-          <p className="text-xs text-[#364964]">이미 계정이 있으신가요?</p>
+          <p className="text-xs text-[#858296]">이미 계정이 있으신가요?</p>
           <Link
             to="/login"
-            className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#0B7CFF] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]"
+            className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#6C48F5] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
           >
             로그인으로 돌아가기
           </Link>
@@ -76,12 +75,12 @@ function Register() {
     >
         {isRegistered ? (
           <div className="space-y-4 text-center">
-            <p role="status" className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-[#364964]">
+            <p role="status" className="rounded-xl bg-[#F0EDFF] px-4 py-3 text-sm text-[#5D4BB4]">
               회원가입이 완료되었습니다. 등록한 이메일로 로그인해 주세요.
             </p>
             <Link
               to="/login"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0B7CFF] py-3.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#6C48F5] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#6C48F5]/25 transition-colors hover:bg-[#5839DB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
             >
               로그인 화면으로 이동
               <ArrowRight size={14} aria-hidden="true" />
@@ -90,7 +89,7 @@ function Register() {
         ) : (
           <form onSubmit={handleSubmit} noValidate className="space-y-4 text-xs">
             <div>
-              <label htmlFor="businessName" className="mb-1 block font-bold text-[#232528]">
+              <label htmlFor="businessName" className="mb-1 block font-bold text-[#2A2C41]">
                 사업자 상호명 <span aria-hidden="true" className="text-red-500">*</span>
               </label>
               <input
@@ -105,7 +104,7 @@ function Register() {
                   clearFieldError('businessName')
                 }}
                 placeholder="사업자명을 입력해 주세요"
-                className={`w-full rounded-lg border p-3 text-xs outline-none transition-colors focus:border-[#0B7CFF] ${fieldErrors.businessName ? 'border-red-500' : 'border-[#E5E5E5]'}`}
+                className={`w-full rounded-xl border p-3 text-xs text-[#2A2C41] outline-none transition-colors focus:border-[#6C48F5] focus:ring-2 focus:ring-[#6C48F5]/10 ${fieldErrors.businessName ? 'border-red-500' : 'border-[#E8E6F2]'}`}
               />
               {fieldErrors.businessName && (
                 <p id="businessName-error" className="mt-1 text-[11px] text-red-500">
@@ -115,7 +114,7 @@ function Register() {
             </div>
 
             <div>
-              <label htmlFor="registerEmail" className="mb-1 block font-bold text-[#232528]">
+              <label htmlFor="registerEmail" className="mb-1 block font-bold text-[#2A2C41]">
                 담당자 이메일 주소 <span aria-hidden="true" className="text-red-500">*</span>
               </label>
               <input
@@ -130,7 +129,7 @@ function Register() {
                   clearFieldError('email')
                 }}
                 placeholder="name@company.com"
-                className={`w-full rounded-lg border p-3 text-xs outline-none transition-colors focus:border-[#0B7CFF] ${fieldErrors.email ? 'border-red-500' : 'border-[#E5E5E5]'}`}
+                className={`w-full rounded-xl border p-3 text-xs text-[#2A2C41] outline-none transition-colors focus:border-[#6C48F5] focus:ring-2 focus:ring-[#6C48F5]/10 ${fieldErrors.email ? 'border-red-500' : 'border-[#E8E6F2]'}`}
               />
               {fieldErrors.email && (
                 <p id="registerEmail-error" className="mt-1 text-[11px] text-red-500">
@@ -140,7 +139,7 @@ function Register() {
             </div>
 
             <div>
-              <label htmlFor="registerPassword" className="mb-1 block font-bold text-[#232528]">
+              <label htmlFor="registerPassword" className="mb-1 block font-bold text-[#2A2C41]">
                 비밀번호 <span aria-hidden="true" className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -157,14 +156,14 @@ function Register() {
                     clearFieldError('password')
                   }}
                   placeholder="비밀번호를 입력해 주세요"
-                  className={`w-full rounded-lg border p-3 pr-10 text-xs outline-none transition-colors focus:border-[#0B7CFF] ${fieldErrors.password ? 'border-red-500' : 'border-[#E5E5E5]'}`}
+                  className={`w-full rounded-xl border p-3 pr-10 text-xs text-[#2A2C41] outline-none transition-colors focus:border-[#6C48F5] focus:ring-2 focus:ring-[#6C48F5]/10 ${fieldErrors.password ? 'border-red-500' : 'border-[#E8E6F2]'}`}
                 />
                 <button
                   type="button"
                   aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
                   aria-pressed={showPassword}
                   onClick={() => setShowPassword((visible) => !visible)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-[#232528] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-[#2A2C41] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
                 >
                   {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
                 </button>
@@ -185,9 +184,9 @@ function Register() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0B7CFF] py-3.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#6C48F5] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#6C48F5]/25 transition-colors hover:bg-[#5839DB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? '가입 중…' : '광고주 계정 만들기'}
+              {isSubmitting ? '가입 중…' : '계정 만들기'}
               {!isSubmitting && <ArrowRight size={14} aria-hidden="true" />}
             </button>
           </form>

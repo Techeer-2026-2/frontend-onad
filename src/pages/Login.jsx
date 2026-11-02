@@ -64,15 +64,14 @@ function Login() {
   return (
     <AuthCard
       title="광고주 로그인"
-      subtitle="광고 캠페인 관리 플랫폼"
       footer={(
         <>
-          <p className="text-xs text-[#364964]">
+          <p className="text-xs text-[#858296]">
             아직 ONAD 사업자 계정이 없으신가요?
           </p>
           <Link
             to="/register"
-            className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#0B7CFF] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]"
+            className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#6C48F5] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
           >
             신규 사업자 회원가입
             <ArrowRight size={12} aria-hidden="true" />
@@ -82,7 +81,7 @@ function Login() {
     >
         <form onSubmit={handleSubmit} noValidate className="space-y-4 text-xs">
           <div>
-            <label htmlFor="email" className="mb-1 block font-bold text-[#232528]">
+            <label htmlFor="email" className="mb-1 block font-bold text-[#2A2C41]">
               이메일 계정 <span aria-hidden="true" className="text-red-500">*</span>
             </label>
             <input
@@ -97,7 +96,7 @@ function Login() {
                 clearFieldError('email')
               }}
               placeholder="name@company.com"
-              className={`w-full rounded-lg border p-3 text-xs outline-none transition-colors focus:border-[#0B7CFF] ${fieldErrors.email ? 'border-red-500' : 'border-[#E5E5E5]'}`}
+              className={`w-full rounded-xl border p-3 text-xs text-[#2A2C41] outline-none transition-colors focus:border-[#6C48F5] focus:ring-2 focus:ring-[#6C48F5]/10 ${fieldErrors.email ? 'border-red-500' : 'border-[#E8E6F2]'}`}
             />
             {fieldErrors.email && (
               <p id="email-error" className="mt-1 text-[11px] text-red-500">
@@ -107,7 +106,7 @@ function Login() {
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-1 block font-bold text-[#232528]">
+            <label htmlFor="password" className="mb-1 block font-bold text-[#2A2C41]">
               비밀번호 <span aria-hidden="true" className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -123,14 +122,14 @@ function Login() {
                   clearFieldError('password')
                 }}
                 placeholder="비밀번호를 입력하세요"
-                className={`w-full rounded-lg border p-3 pr-10 text-xs outline-none transition-colors focus:border-[#0B7CFF] ${fieldErrors.password ? 'border-red-500' : 'border-[#E5E5E5]'}`}
+                className={`w-full rounded-xl border p-3 pr-10 text-xs text-[#2A2C41] outline-none transition-colors focus:border-[#6C48F5] focus:ring-2 focus:ring-[#6C48F5]/10 ${fieldErrors.password ? 'border-red-500' : 'border-[#E8E6F2]'}`}
               />
               <button
                 type="button"
                 aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
                 aria-pressed={showPassword}
                 onClick={() => setShowPassword((visible) => !visible)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-[#232528] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-[#2A2C41] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
               >
                 {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
               </button>
@@ -151,13 +150,13 @@ function Login() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-lg bg-[#0B7CFF] py-3.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7CFF] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-[#6C48F5] py-3.5 text-sm font-bold text-white shadow-lg shadow-[#6C48F5]/25 transition-colors hover:bg-[#5839DB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? (
               '로그인 중…'
             ) : (
               <span className="flex items-center justify-center gap-2">
-                광고주 포털 접속
+                로그인
                 <ArrowRight size={14} aria-hidden="true" />
               </span>
             )}

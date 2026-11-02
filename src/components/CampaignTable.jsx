@@ -17,7 +17,7 @@ function CampaignTable({
   hideHeader = false,
 }) {
   return (
-    <section className={`overflow-hidden rounded-[2rem] border border-[#ECEAF5] bg-white transition-shadow duration-300 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] ${compact ? 'flex h-full flex-col' : ''} ${management ? 'flex min-h-[620px] flex-col' : ''}`}>
+    <section className={`overflow-hidden rounded-[2rem] border border-[#ECEAF5] bg-white transition-shadow duration-300 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] ${compact ? 'flex h-full flex-col' : ''} ${management ? 'flex flex-col' : ''}`}>
       {!hideHeader && <div className={`flex flex-wrap items-center justify-between gap-3 border-b border-[#F0EFF7] ${compact ? 'px-8 py-7' : 'px-5 py-5 md:px-7'}`}>
         <div>
           <h2 className={`${compact ? 'text-lg' : dashboard ? 'text-xl' : 'text-base'} font-bold tracking-tight text-[#2A2C41]`}>{title}</h2>
@@ -46,7 +46,7 @@ function CampaignTable({
         )}
       </div>}
 
-      <div className={`${compact ? 'flex-1 overflow-x-auto px-8 pb-6' : management ? 'flex-1 overflow-x-auto' : 'overflow-x-auto'}`}>
+      <div className={`${compact ? 'flex-1 overflow-x-auto px-8 pb-6' : management ? 'overflow-x-auto' : 'overflow-x-auto'}`}>
         <table className={`w-full text-left ${management ? 'text-base' : dashboard ? 'text-[15px]' : 'text-xs'} text-[#2A2C41] ${compact ? 'min-w-0' : 'min-w-220'}`}>
           <thead className={`border-b border-[#F0EFF7] ${dashboard ? 'bg-white text-sm text-[#9CA3AF]' : 'bg-[#FAFAFD] text-[#8C8A9E]'} font-semibold uppercase tracking-wide`}>
             {management ? <tr>

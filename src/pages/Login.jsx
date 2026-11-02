@@ -64,7 +64,6 @@ function Login() {
   return (
     <AuthCard
       title="광고주 로그인"
-      subtitle="광고 캠페인 관리 플랫폼"
       footer={(
         <>
           <p className="text-xs text-[#858296]">

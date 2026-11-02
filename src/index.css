@@ -16,6 +16,26 @@ body {
   font-family: Inter, Pretendard, "Noto Sans KR", system-ui, sans-serif;
 }
 
+/* Account page: profile at left, campaign summaries at right. */
+.account-overview-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.7fr);
+  gap: 1.5rem;
+}
+
+.account-campaign-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 767px) {
+  .account-overview-layout,
+  .account-campaign-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .onad-scrollbar {
   scrollbar-color: #CBD5E1 transparent;
   scrollbar-width: thin;

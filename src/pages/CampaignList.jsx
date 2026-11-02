@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import CampaignHistoryPanel from '../components/CampaignHistoryPanel'
 import CampaignTable from '../components/CampaignTable'
 import { getCampaigns } from '../api/campaigns'
-import { mockCampaigns } from '../data/campaigns'
+import { mockCampaigns } from '../mock/campaigns'
 
 function formatTargetAudience(ageGroups, genders) {
   const ages = Array.isArray(ageGroups)
@@ -29,7 +29,7 @@ function formatCampaignPeriod(startAt, endAt) {
 function AllCampaignsPanel() {
   const [campaigns, setCampaigns] = useState([])
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(5)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [retryCount, setRetryCount] = useState(0)

@@ -15,7 +15,7 @@ function KpiCard({ label, value, change, tone = 'lavender', to }) {
       {tone === 'lavender' && (
         <div className="relative z-10 mb-8 flex items-start justify-between">
           <div className="flex gap-1"><span className="h-1.5 w-1.5 rounded-full bg-white/60" /><span className="h-1.5 w-1.5 rounded-full bg-white/60" /><span className="h-1.5 w-1.5 rounded-full bg-white/60" /></div>
-          <span className="rounded-full bg-white/30 px-3 py-1 text-xs font-semibold text-[#6C48F5] backdrop-blur-sm">{label}</span>
+          <span className="rounded-full bg-white/30 px-3 py-1 text-xs font-semibold text-onad-purple backdrop-blur-sm">{label}</span>
         </div>
       )}
       {tone === 'dark' && (

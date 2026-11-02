@@ -8,7 +8,8 @@ import { Link } from 'react-router-dom'
 import CampaignTable from '../components/CampaignTable'
 import KpiCard from '../components/kpiCard'
 import { getCampaign, getCampaigns } from '../api/campaigns'
-import { mockCampaigns } from '../data/campaigns'
+import { mockCampaigns } from '../mock/campaigns'
+import { mockDashboardChartSeries, mockDashboardDatePresets } from '../mock/dashboard'
 
 function formatTargetAudience(ageGroups, genders) {
   const ages = Array.isArray(ageGroups)
@@ -49,42 +50,6 @@ function mapDashboardCampaign(campaign, detail) {
   }
 }
 
-const chartSeries = {
-  hour: {
-    labels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
-    impressions: [420, 680, 1450, 890, 920, 1680, 1100, 750],
-    clicks: [45, 72, 185, 95, 98, 210, 130, 82],
-  },
-  day: {
-    labels: ['9/20', '9/21', '9/22', '9/23', '9/24', '9/25', '9/26'],
-    impressions: [1450, 1620, 1880, 1720, 1980, 2100, 2050],
-    clicks: [210, 140, 165, 205, 215, 120, 150],
-  },
-  week: {
-    labels: ['9월 1주차', '9월 2주차', '9월 3주차', '9월 4주차'],
-    impressions: [8900, 11200, 12847, 10500],
-    clicks: [820, 1050, 1203, 980],
-  },
-}
-
-const datePresets = {
-  yesterday: {
-    label: '2026.09.25 (어제)',
-    start: '2026-09-25',
-    end: '2026-09-25',
-  },
-  '7days': {
-    label: '2026.09.20 ~ 2026.09.26 (최근 7일)',
-    start: '2026-09-20',
-    end: '2026-09-26',
-  },
-  '30days': {
-    label: '2026.08.28 ~ 2026.09.26 (최근 30일)',
-    start: '2026-08-28',
-    end: '2026-09-26',
-  },
-}
-
 const presetOptions = [
   ['30days', '이번 달 (This month)'],
   ['yesterday', '어제'],
@@ -97,7 +62,8 @@ function formatDate(date) {
 }
 
 export function TrendChart({ granularity }) {
-  const { labels, impressions, clicks } = chartSeries[granularity]
+  const { labels, impressions, clicks } = mockDashboardChartSeries[granularity]
+  const [hoveredIndex, setHoveredIndex] = useState(null)
   const width = 760
   const height = 290
   const left = 24
@@ -107,8 +73,14 @@ export function TrendChart({ granularity }) {
   const chartWidth = width - left - right
   const chartHeight = height - top - bottom
   const maxImpressions = Math.ceil(Math.max(...impressions) / 1000) * 1000
+  const maxClicks = Math.max(...clicks)
   const step = chartWidth / labels.length
   const barWidth = Math.min(46, step * 0.34)
+  const clickPoints = clicks.map((value, index) => {
+    const x = left + step * index + step / 2
+    const y = top + chartHeight - (value / maxClicks) * chartHeight * 0.72 - chartHeight * 0.1
+    return `${x},${y}`
+  }).join(' ')
 
   return (
     <div className="w-full min-w-0">
@@ -117,6 +89,7 @@ export function TrendChart({ granularity }) {
         role="img"
         aria-label={`${granularity === 'hour' ? '시간' : granularity === 'day' ? '일' : '주'} 단위 노출 및 클릭 추이 샘플 차트`}
         className="h-96 w-full"
+        onMouseLeave={() => setHoveredIndex(null)}
       >
         <line x1={left} x2={width - right} y1={top + chartHeight} y2={top + chartHeight} stroke="#E8E6F2" />
 
@@ -133,11 +106,43 @@ export function TrendChart({ granularity }) {
               rx="8"
               fill="#6C48F5"
               opacity="0.95"
-            >
-              <title>{`${labels[index]} 노출 ${value.toLocaleString()}건 · 클릭 ${clicks[index].toLocaleString()}회`}</title>
-            </rect>
+            />
           )
         })}
+        <polyline points={clickPoints} fill="none" stroke="#2A2C41" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+        {clicks.map((value, index) => {
+          const x = left + step * index + step / 2
+          const y = top + chartHeight - (value / maxClicks) * chartHeight * 0.72 - chartHeight * 0.1
+          return <circle key={`click-${labels[index]}`} cx={x} cy={y} r="3" fill="#2A2C41" stroke="#2A2C41" strokeWidth="3" />
+        })}
+        {labels.map((label, index) => (
+          <rect
+            key={`hit-${label}`}
+            x={left + step * index}
+            y={top}
+            width={step}
+            height={chartHeight}
+            fill="transparent"
+            onMouseEnter={() => setHoveredIndex(index)}
+          />
+        ))}
+        {hoveredIndex !== null && (() => {
+          const tooltipWidth = 132
+          const tooltipHeight = 68
+          const centerX = left + step * hoveredIndex + step / 2
+          const tooltipX = Math.min(Math.max(centerX - tooltipWidth / 2, left), width - right - tooltipWidth)
+          const tooltipY = top + 8
+          return (
+            <g pointerEvents="none">
+              <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} rx="10" fill="white" stroke="#E8E6F2" />
+              <text x={tooltipX + 12} y={tooltipY + 18} fill="#2A2C41" fontSize="10" fontWeight="700">{labels[hoveredIndex]}</text>
+              <circle cx={tooltipX + 16} cy={tooltipY + 35} r="3" fill="#6C48F5" />
+              <text x={tooltipX + 24} y={tooltipY + 39} fill="#6F6C80" fontSize="10">노출 {impressions[hoveredIndex].toLocaleString()}</text>
+              <circle cx={tooltipX + 16} cy={tooltipY + 53} r="3" fill="#2A2C41" />
+              <text x={tooltipX + 24} y={tooltipY + 57} fill="#6F6C80" fontSize="10">클릭 {clicks[hoveredIndex].toLocaleString()}</text>
+            </g>
+          )
+        })()}
         {labels.map((label, index) => (
           <text key={label} x={left + step * index + step / 2} y={height - 14} textAnchor="middle" fill="#9A97A7" fontSize="11">
             {label}
@@ -154,7 +159,7 @@ function Dashboard() {
   const [errorMessage, setErrorMessage] = useState('')
   const [retryCount, setRetryCount] = useState(0)
   const [selectedPreset, setSelectedPreset] = useState('7days')
-  const [dateLabel, setDateLabel] = useState(datePresets['7days'].label)
+  const [dateLabel, setDateLabel] = useState(mockDashboardDatePresets['7days'].label)
   const [dateInputs, setDateInputs] = useState({ start: '2026-09-01', end: '2026-09-26' })
   const [showCustomDates, setShowCustomDates] = useState(false)
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false)
@@ -205,8 +210,8 @@ function Dashboard() {
 
   const applyPreset = (preset) => {
     setSelectedPreset(preset)
-    setDateLabel(datePresets[preset].label)
-    setDateInputs({ start: datePresets[preset].start, end: datePresets[preset].end })
+    setDateLabel(mockDashboardDatePresets[preset].label)
+    setDateInputs({ start: mockDashboardDatePresets[preset].start, end: mockDashboardDatePresets[preset].end })
     setDateError('')
   }
 
@@ -241,7 +246,7 @@ function Dashboard() {
               onClick={() => setIsPresetMenuOpen((open) => !open)}
               aria-haspopup="menu"
               aria-expanded={isPresetMenuOpen}
-              className="inline-flex min-h-11 min-w-44 items-center justify-between gap-5 rounded-xl border border-[#E4E1F0] bg-white px-4 text-sm font-semibold text-[#2A2C41] shadow-sm transition hover:border-[#CFC4FF] hover:bg-[#FCFBFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
+              className="inline-flex min-h-11 min-w-44 items-center justify-between gap-5 rounded-xl border border-[#E4E1F0] bg-white px-4 text-sm font-semibold text-onad-dark shadow-sm transition hover:border-[#CFC4FF] hover:bg-[#FCFBFF] focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-onad-purple"
             >
               <span>{presetOptions.find(([value]) => value === selectedPreset)?.[1] || '기간 설정'}</span>
               <ChevronDown size={16} className={`text-[#7C6DB9] transition-transform ${isPresetMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
@@ -264,7 +269,7 @@ function Dashboard() {
                       applyPreset(value)
                       setShowCustomDates(false)
                     }}
-                    className={`flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${selectedPreset === value ? 'bg-[#F0ECFF] text-[#6C48F5]' : 'text-[#4B485C] hover:bg-[#F7F5FF] hover:text-[#6C48F5]'}`}
+                    className={`flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${selectedPreset === value ? 'bg-[#F0ECFF] text-onad-purplele' : 'text-[#4B485C] hover:bg-[#F7F5FF] hover:text-onad-purple'}`}
                   >
                     {label}
                   </button>
@@ -272,15 +277,15 @@ function Dashboard() {
               </div>
             )}
           </div>
-          <Link to="/campaigns/new" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#6C48F5] px-5 text-sm font-bold text-white shadow-lg shadow-[#6C48F5]/25 transition hover:bg-[#5839DB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]">
+          <Link to="/campaigns/new" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-onad-purple px-5 text-sm font-bold text-white shadow-lg shadow-onad-purple/25 transition hover:bg-[#5839DB] focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-onad-purple">
             <Plus size={17} aria-hidden="true" /> 새 캠페인 등록
           </Link>
         </div>
       </section>
 
       {showCustomDates && (
-        <section className="mb-10 space-y-4 rounded-2xl border border-[#DED9FA] bg-white p-5 shadow-lg shadow-[#6C48F5]/5" aria-labelledby="custom-date-title">
-          <h2 id="custom-date-title" className="text-sm font-bold text-[#2A2C41]">
+        <section className="mb-10 space-y-4 rounded-2xl border border-[#DED9FA] bg-white p-5 shadow-lg shadow-onad-purple/5" aria-labelledby="custom-date-title">
+          <h2 id="custom-date-title" className="text-sm font-bold text-onad-dark">
             분석 시작일 및 종료일 지정
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -291,7 +296,7 @@ function Dashboard() {
                 type="date"
                 value={dateInputs.start}
                 onChange={(event) => setDateInputs((current) => ({ ...current, start: event.target.value }))}
-                className="mt-1 w-full rounded-lg border border-[#E8E6F2] p-2.5 text-xs outline-none focus:border-[#6C48F5] focus:ring-2 focus:ring-[#6C48F5]/10"
+                className="mt-1 w-full rounded-lg border border-[#E8E6F2] p-2.5 text-xs outline-none focus:border-onad-purple focus:ring-2 focus:ring-onad-purple/1010"
               />
             </label>
             <label className="text-xs font-medium text-[#5D5A6E]" htmlFor="end-date-input">
@@ -301,7 +306,7 @@ function Dashboard() {
                 type="date"
                 value={dateInputs.end}
                 onChange={(event) => setDateInputs((current) => ({ ...current, end: event.target.value }))}
-                className="mt-1 w-full rounded-lg border border-[#E8E6F2] p-2.5 text-xs outline-none focus:border-[#6C48F5] focus:ring-2 focus:ring-[#6C48F5]/10"
+                className="mt-1 w-full rounded-lg border border-[#E8E6F2] p-2.5 text-xs outline-none focus:border-onad-purple focus:ring-2 focus:ring-onad-purple/1010"
               />
             </label>
           </div>
@@ -310,7 +315,7 @@ function Dashboard() {
             <button type="button" onClick={() => setShowCustomDates(false)} className="rounded-lg border border-[#E8E6F2] px-3 py-1.5 text-xs text-[#5D5A6E] hover:bg-[#F7F7FB]">
               취소
             </button>
-            <button type="button" onClick={applyCustomDates} className="rounded-lg bg-[#6C48F5] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#5839DB]">
+            <button type="button" onClick={applyCustomDates} className="rounded-lg bg-onad-purple px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#5839DB]">
               기간 적용
             </button>
           </div>
@@ -333,10 +338,10 @@ function Dashboard() {
       </section>
 
       <div className="grid grid-cols-1 gap-8">
-      <section className="space-y-4 rounded-[2rem] border border-[#ECEAF5] bg-white p-5 transition-shadow duration-300 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] md:p-6" aria-labelledby="trend-title">
+      <section className="space-y-4 rounded-4xl border border-[#ECEAF5] bg-white p-5 transition-shadow duration-300 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] md:p-6" aria-labelledby="trend-title">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h2 id="trend-title" className="text-xl font-extrabold tracking-tight text-[#2A2C41]">
+            <h2 id="trend-title" className="text-xl font-extrabold tracking-tight text-onad-dark">
               캠페인 성과 추이
             </h2>
           </div>
@@ -352,7 +357,7 @@ function Dashboard() {
                   type="button"
                   onClick={() => setGranularity(value)}
                   aria-pressed={granularity === value}
-                  className={`rounded-md px-3 py-1 ${granularity === value ? 'bg-white font-bold text-[#6C48F5] shadow-sm' : 'text-[#6F6C80] hover:text-[#2A2C41]'}`}
+                  className={`rounded-md px-3 py-1 ${granularity === value ? 'bg-white font-bold text-onad-purple shadow-sm' : 'text-[#6F6C80] hover:text-onad-dark'}`}
                 >
                   {label}
                 </button>
@@ -364,8 +369,9 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] font-medium text-[#6F6C80]" aria-hidden="true">
-          <span className="h-2 w-2 rounded-sm bg-[#6C48F5]" />노출 수
+        <div className="flex items-center gap-4 text-[11px] font-medium text-[#6F6C80]" aria-hidden="true">
+          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-onad-purple" />노출 수</span>
+          <span className="flex items-center gap-2"><span className="h-0.5 w-4 rounded-full bg-[#2A2C41]" />클릭 수</span>
         </div>
         <TrendChart granularity={granularity} />
       </section>

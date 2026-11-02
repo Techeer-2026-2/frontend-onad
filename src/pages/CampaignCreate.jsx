@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertCircle, ArrowLeft, Music2, Play } from 'lucide-react'
+import { AlertCircle, ArrowLeft } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { createCampaign, getCampaign, updateCampaign } from '../api/campaigns'
+import CampaignPreview from '../components/CampaignPreview'
+import { getMockCampaignDetail } from '../mock/campaignDetails'
 
 const initialFormData = {
   title: '',
@@ -94,13 +96,33 @@ function CampaignCreate() {
   const [selectedAgeGroups, setSelectedAgeGroups] = useState(['20대', '30대'])
   const [selectedGenders, setSelectedGenders] = useState(['전체'])
   const [existingImageUrl, setExistingImageUrl] = useState('')
-  const [campaignStatus, setCampaignStatus] = useState('')
   const [isLoadingCampaign, setIsLoadingCampaign] = useState(isEditMode)
   const [loadError, setLoadError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (!isEditMode) return undefined
+
+    const mockCampaign = getMockCampaignDetail(campaignId)
+    if (mockCampaign) {
+      setFormData({
+        title: mockCampaign.title || '',
+        body: mockCampaign.body || '',
+        linkUrl: mockCampaign.linkUrl || '',
+        startAt: toDateTimeInput(mockCampaign.startAt),
+        endAt: toDateTimeInput(mockCampaign.endAt),
+      })
+      setExistingImageUrl(mockCampaign.imageUrl || '')
+      setSelectedAgeGroups(Array.isArray(mockCampaign.targetAgeGroups)
+        ? mockCampaign.targetAgeGroups.map((value) => Object.entries(ageGroupValues).find(([, code]) => code === value)?.[0]).filter(Boolean)
+        : [])
+      setSelectedGenders(Array.isArray(mockCampaign.targetGenders)
+        ? mockCampaign.targetGenders.map((value) => Object.entries(genderValues).find(([, code]) => code === value)?.[0]).filter(Boolean)
+        : [])
+      setPreviewUrl(mockCampaign.imageUrl || '')
+      setIsLoadingCampaign(false)
+      return undefined
+    }
 
     const controller = new AbortController()
     getCampaign(campaignId, { signal: controller.signal })
@@ -113,7 +135,6 @@ function CampaignCreate() {
           endAt: toDateTimeInput(campaign.endAt),
         })
         setExistingImageUrl(campaign.imageUrl || '')
-        setCampaignStatus(campaign.status || '')
         setSelectedAgeGroups(Array.isArray(campaign.targetAgeGroups)
           ? campaign.targetAgeGroups.map((value) => Object.entries(ageGroupValues).find(([, code]) => code === value)?.[0]).filter(Boolean)
           : [])
@@ -167,7 +188,6 @@ function CampaignCreate() {
     })
   }
 
-  const isOngoingEdit = isEditMode && campaignStatus === 'ONGOING'
   function handleImageChange(event) {
     const file = event.target.files?.[0]
     setNotice('')
@@ -217,13 +237,11 @@ function CampaignCreate() {
       title: submittedFormData.title.trim(),
       body: submittedFormData.body.trim(),
     }
-    if (!isOngoingEdit) {
-      payload.targetAgeGroups = selectedAgeGroups.map((age) => ageGroupValues[age])
-      payload.targetGenders = selectedGenders.map((gender) => genderValues[gender])
-      payload.startAt = submittedFormData.startAt
-      payload.endAt = submittedFormData.endAt
-      payload.linkUrl = submittedFormData.linkUrl.trim()
-    }
+    payload.targetAgeGroups = selectedAgeGroups.map((age) => ageGroupValues[age])
+    payload.targetGenders = selectedGenders.map((gender) => genderValues[gender])
+    payload.startAt = submittedFormData.startAt
+    payload.endAt = submittedFormData.endAt
+    payload.linkUrl = submittedFormData.linkUrl.trim()
 
     setIsSubmitting(true)
     try {
@@ -257,10 +275,6 @@ function CampaignCreate() {
     return <section className="rounded-xl border border-red-200 bg-white px-6 py-12 text-center"><p role="alert" className="text-sm text-red-700">{loadError}</p><Link to={`/campaigns/${campaignId}`} className="mt-4 inline-flex text-sm font-semibold text-[#0B7CFF]">캠페인 상세로</Link></section>
   }
 
-  if (isEditMode && campaignStatus === 'ENDED') {
-    return <section className="rounded-xl border border-[#E5E5E5] bg-white px-6 py-12 text-center"><p role="alert" className="text-sm text-[#667085]">종료된 캠페인은 수정할 수 없습니다.</p><Link to={`/campaigns/${campaignId}`} className="mt-4 inline-flex text-sm font-semibold text-[#0B7CFF]">캠페인 상세로</Link></section>
-  }
-
   return (
     <div className="mx-auto max-w-7xl">
       <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -278,7 +292,6 @@ function CampaignCreate() {
           <p className="mt-1 text-sm text-gray-500">
             ONBEAT 청취자들에게 새로운 광고를 선보이세요.
           </p>
-          {isOngoingEdit && <p role="status" className="mt-2 text-xs text-amber-700">진행 중 캠페인은 제목, 본문과 배너 이미지만 수정할 수 있습니다.</p>}
           </div>
         </div>
       </header>
@@ -303,14 +316,15 @@ function CampaignCreate() {
                 )}
               </FormField>
               <FormField id="linkUrl" label="랜딩 페이지 URL" description="배너 클릭 시 연결할 주소입니다. 선택 입력 항목입니다." error={errors.linkUrl}>
-                <input id="linkUrl" name="linkUrl" type="url" value={formData.linkUrl} onChange={handleChange} disabled={isOngoingEdit} aria-invalid={Boolean(errors.linkUrl)} aria-describedby={describedBy('linkUrl', errors.linkUrl)} className={`${inputClassName} font-mono text-xs disabled:bg-slate-50`} placeholder="https://example.com" />
+                <input id="linkUrl" name="linkUrl" type="url" value={formData.linkUrl} onChange={handleChange} aria-invalid={Boolean(errors.linkUrl)} aria-describedby={describedBy('linkUrl', errors.linkUrl)} className={`${inputClassName} font-mono text-xs`} placeholder="https://example.com" />
               </FormField>
             </div>
           </SectionCard>
 
-          <SectionCard number="02" title="타겟 조건 설정">
-            <div className="space-y-5">
-              <fieldset disabled={isOngoingEdit} aria-describedby={errors.targetAgeGroups ? 'targetAgeGroups-error' : undefined}>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <SectionCard number="02" title="타겟 조건 설정">
+              <div className="space-y-5">
+              <fieldset aria-describedby={errors.targetAgeGroups ? 'targetAgeGroups-error' : undefined}>
                 <legend className="text-sm font-semibold text-gray-700">연령대 타겟 <span className="font-normal text-gray-500">(중복 선택 가능)</span></legend>
                 <div className="mt-2 flex flex-wrap gap-2">
                 {['10대', '20대', '30대', '40대', '50대+'].map((ageGroup) => {
@@ -334,7 +348,7 @@ function CampaignCreate() {
 
               {errors.targetAgeGroups && <p id="targetAgeGroups-error" role="alert" className="text-xs text-rose-600">{errors.targetAgeGroups}</p>}
 
-              <fieldset disabled={isOngoingEdit} aria-describedby={errors.targetGenders ? 'targetGenders-error' : undefined}>
+              <fieldset aria-describedby={errors.targetGenders ? 'targetGenders-error' : undefined}>
                 <legend className="text-sm font-semibold text-gray-700">성별 타겟 <span className="font-normal text-gray-500">(중복 선택 가능)</span></legend>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {['전체', '남성', '여성'].map((gender) => {
@@ -344,20 +358,20 @@ function CampaignCreate() {
                 </div>
                 {errors.targetGenders && <p id="targetGenders-error" role="alert" className="mt-2 text-xs text-rose-600">{errors.targetGenders}</p>}
               </fieldset>
-            </div>
-          </SectionCard>
+              </div>
+            </SectionCard>
 
-          <SectionCard number="03" title="캠페인 일정 설정">
-            <p className="-mt-2 text-xs text-gray-500">캠페인이 노출될 시작 종료 일시를 지정합니다.</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField id="startAt" label="시작 일시" required error={errors.startAt}>
-                <input id="startAt" name="startAt" type="datetime-local" value={formData.startAt} onChange={handleChange} disabled={isOngoingEdit} aria-invalid={Boolean(errors.startAt)} aria-describedby={describedBy('startAt', errors.startAt)} className={`${inputClassName} disabled:bg-slate-50`} />
-              </FormField>
-              <FormField id="endAt" label="종료 일시" required error={errors.endAt}>
-                <input id="endAt" name="endAt" type="datetime-local" value={formData.endAt} onChange={handleChange} disabled={isOngoingEdit} aria-invalid={Boolean(errors.endAt)} aria-describedby={describedBy('endAt', errors.endAt)} className={`${inputClassName} disabled:bg-slate-50`} />
-              </FormField>
-            </div>
-          </SectionCard>
+            <SectionCard number="03" title="캠페인 일정 설정">
+              <div className="grid gap-4 sm:grid-rows-2">
+                <FormField id="startAt" label="시작 일시" required error={errors.startAt}>
+                  <input id="startAt" name="startAt" type="datetime-local" value={formData.startAt} onChange={handleChange} aria-invalid={Boolean(errors.startAt)} aria-describedby={describedBy('startAt', errors.startAt)} className={inputClassName} />
+                </FormField>
+                <FormField id="endAt" label="종료 일시" required error={errors.endAt}>
+                  <input id="endAt" name="endAt" type="datetime-local" value={formData.endAt} onChange={handleChange} aria-invalid={Boolean(errors.endAt)} aria-describedby={describedBy('endAt', errors.endAt)} className={inputClassName} />
+                </FormField>
+              </div>
+            </SectionCard>
+          </div>
 
           {notice && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{notice}</p>}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -369,21 +383,7 @@ function CampaignCreate() {
         <aside className="w-full shrink-0 lg:w-[360px]">
           <div className="rounded-[2rem] border border-[#ECEAF5] bg-white p-5 shadow-sm lg:sticky lg:top-10">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500">Live Preview</h2>
-            <div className="mx-auto w-full max-w-[360px] rounded-[2.8rem] border-[10px] border-[#181A1E] bg-[#101114] p-3 text-white shadow-[0_22px_42px_-14px_rgba(16,18,23,0.45)]">
-              <div className="flex items-center justify-between px-2 pb-4 pt-1 text-[10px] font-bold"><span>9:41</span><span className="tracking-[-0.05em]">●●● ▰</span></div>
-              <div className="rounded-[1.7rem] bg-[#1E2025] p-4">
-                <div className="mb-5 flex items-center justify-between"><div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#8061F9]"><Music2 size={17} /></div><span className="text-[13px] font-bold">ONAD</span></div><span className="text-[10px] text-white/50">광고</span></div>
-                <div className="overflow-hidden rounded-2xl bg-[#292C33]">
-                  {previewUrl
-                    ? <img src={previewUrl} alt="선택한 캠페인 배너 미리보기" className="aspect-square w-full object-cover" />
-                    : <div className="flex aspect-square w-full flex-col items-center justify-center bg-linear-to-br from-[#8061F9] to-[#39246F] text-white/70"><Music2 size={40} /><span className="mt-3 text-[11px]">배너 이미지 미리보기</span></div>}
-                  <div className="space-y-3 p-4"><p className="line-clamp-2 text-sm font-bold leading-5">{previewTitle}</p><p className="line-clamp-2 text-[11px] leading-5 text-white/65">{previewBody}</p><button type="button" className="flex w-full items-center justify-center gap-1 rounded-full bg-[#6C48F5] py-2.5 text-[11px] font-bold"><Play size={12} fill="currentColor" />자세히 보기</button></div>
-                </div>
-                <div className="mt-4 flex items-center gap-3 rounded-2xl bg-[#292B31] p-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-linear-to-br from-[#8061F9] to-[#6C48F5]"><Music2 size={17} /></div><div className="min-w-0 flex-1"><p className="truncate text-[11px] font-semibold">ONAD 추천 콘텐츠</p><p className="mt-0.5 text-[9px] text-white/50">캠페인 미리보기</p></div><Play size={14} /></div>
-                <div className="mt-5 flex justify-around border-t border-white/10 pt-4 text-[9px] text-white/45"><span>홈</span><span className="font-semibold text-white">탐색</span><span>보관함</span><span>내 정보</span></div>
-              </div>
-              <div className="mx-auto mt-3 h-1 w-20 rounded-full bg-white/70" />
-            </div>
+            <CampaignPreview title={previewTitle} body={previewBody} imageUrl={previewUrl} />
           </div>
         </aside>
       </div>

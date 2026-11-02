@@ -1,8 +1,10 @@
 import {
   LogOut,
 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { logout } from '../api/auth'
+import { getMyAccount } from '../api/owners'
 
 const mainMenuItems = [
   { label: 'Dashboard', path: '/dashboard' },
@@ -12,6 +14,31 @@ const mainMenuItems = [
 
 function Sidebar({ isOpen = false, onNavigate = () => {} }) {
   const navigate = useNavigate()
+  const [profileInitial, setProfileInitial] = useState('OA')
+  const hasLocalProfileChange = useRef(false)
+
+  useEffect(() => {
+    let active = true
+    function updateProfileInitial(event) {
+      const initial = event.detail?.businessName?.trim().slice(0, 1).toUpperCase()
+      if (initial) {
+        hasLocalProfileChange.current = true
+        setProfileInitial(initial)
+      }
+    }
+
+    getMyAccount()
+      .then((account) => {
+        const initial = account?.businessName?.trim().slice(0, 1).toUpperCase()
+        if (active && initial && !hasLocalProfileChange.current) setProfileInitial(initial)
+      })
+      .catch(() => {})
+    window.addEventListener('account-updated', updateProfileInitial)
+    return () => {
+      active = false
+      window.removeEventListener('account-updated', updateProfileInitial)
+    }
+  }, [])
 
   async function handleLogout() {
     try {
@@ -83,9 +110,9 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
           onClick={onNavigate}
           aria-label="내 정보"
           title="내 정보"
-          className="group relative flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-[#2A2C41] text-sm font-bold text-white shadow-md ring-1 ring-[#E8E6F2] transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
+          className="group relative flex h-12 w-12 items-center justify-center rounded-full border-white bg-[#2A2C41] text-sm font-bold text-white shadow-md ring-1 ring-[#E8E6F2] transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6C48F5]"
         >
-          OA
+          {profileInitial}
           <span role="tooltip" className="pointer-events-none absolute right-0 top-[calc(100%+0.5rem)] z-60 whitespace-nowrap rounded-md bg-[#2A2C41] px-2 py-1 text-[11px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
             내 정보
           </span>

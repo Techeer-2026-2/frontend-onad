@@ -1,5 +1,5 @@
-// Fallback data used only when the campaign API successfully returns no campaigns.
-// Keep this shape aligned with CampaignTable so every page can share the same mock state.
+// Campaign fallback data for UI development when the API has no campaigns.
+// Keep this shape aligned with CampaignTable so all pages can share it.
 export const mockCampaigns = [
   {
     id: 'mock-summer-release',
@@ -22,10 +22,10 @@ export const mockCampaigns = [
     period: '2026. 9. 1. ~ 2026. 9. 30.',
   },
   {
-    id: 'mock-headphone-event',
-    name: '프리미엄 헤드폰 브랜드 기획전',
+    id: 'mock-redvelvet-event',
+    name: 'RedVelvet COMEBACK SHOWCASE',
     status: 'ONGOING',
-    targetAudience: '20대, 30대 (남성)',
+    targetAudience: '20대, 30대 (여성)',
     sent: 840000,
     clicks: 25200,
     ctr: 3,

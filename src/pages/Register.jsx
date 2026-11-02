@@ -61,7 +61,6 @@ function Register() {
   return (
     <AuthCard
       title="신규 사업자 회원가입"
-      subtitle="광고 캠페인 관리를 위한 광고주 계정을 만듭니다."
       footer={!isRegistered && (
         <>
           <p className="text-xs text-[#858296]">이미 계정이 있으신가요?</p>

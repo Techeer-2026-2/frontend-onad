@@ -72,7 +72,7 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
         aria-label="ONAD 대시보드로 이동"
         className="flex shrink-0 items-center gap-2 text-left"
       >
-        <span className="text-[26px] font-bold tracking-tight text-[#6C48F5]">ONAD</span>
+        <span className="text-[26px] font-bold tracking-tight text-[#6C48F5]">ON<span className="text-[#2A2C41]">AD</span></span>
         <sup className="-ml-1 self-start pt-2 text-[8px] font-semibold text-[#AAA7B6]">™</sup>
       </button>
 

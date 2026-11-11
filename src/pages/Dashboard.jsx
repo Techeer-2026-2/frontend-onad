@@ -1,15 +1,22 @@
 import { useEffect, useState } from 'react'
 import {
+  CalendarDays,
   ChartLine,
   ChevronDown,
+  Coins,
+  Eye,
+  Megaphone,
+  MousePointerClick,
   Plus,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import CampaignSelect from '../components/CampaignSelect'
 import CampaignTable from '../components/CampaignTable'
 import KpiCard from '../components/kpiCard'
 import { getCampaign, getCampaigns } from '../api/campaigns'
 import { mockCampaigns } from '../mock/campaigns'
 import { mockDashboardChartSeries, mockDashboardDatePresets } from '../mock/dashboard'
+import { getHomePerformance } from '../mock/homePerformance'
 
 function formatTargetAudience(ageGroups, genders) {
   const ages = Array.isArray(ageGroups)
@@ -61,8 +68,12 @@ function formatDate(date) {
   return date.replaceAll('-', '.')
 }
 
-export function TrendChart({ granularity }) {
-  const { labels, impressions, clicks } = mockDashboardChartSeries[granularity]
+function formatWon(value) {
+  return `₩${Math.round(value).toLocaleString('ko-KR')}`
+}
+
+export function TrendChart({ granularity, series = mockDashboardChartSeries[granularity] }) {
+  const { labels, impressions, clicks } = series
   const [hoveredIndex, setHoveredIndex] = useState(null)
   const width = 760
   const height = 290
@@ -165,6 +176,7 @@ function Dashboard() {
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false)
   const [dateError, setDateError] = useState('')
   const [granularity, setGranularity] = useState('day')
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -196,15 +208,28 @@ function Dashboard() {
     return () => controller.abort()
   }, [retryCount])
 
-  const totalImpressions = campaigns.reduce((sum, campaign) => sum + (campaign.sent || 0), 0)
-  const totalClicks = campaigns.reduce((sum, campaign) => sum + (campaign.clicks || 0), 0)
-  const activeCampaignCount = campaigns.filter((campaign) => campaign.status === 'ONGOING' || campaign.status === 'active').length
+  const sourceCampaigns = campaigns.length > 0 ? campaigns : mockCampaigns
+  const isOngoing = (campaign) => campaign.status === 'ONGOING' || campaign.status === 'active'
+  // 기본 선택: 진행 중인 첫 캠페인 → 없으면 첫 캠페인
+  const defaultCampaign = sourceCampaigns.find(isOngoing) ?? sourceCampaigns[0]
+  const selectedCampaign = sourceCampaigns.find((campaign) => campaign.id === selectedCampaignId) ?? defaultCampaign
+  const campaignOptions = sourceCampaigns.map((campaign) => ({ value: campaign.id, label: campaign.name }))
+
+  const impressions = selectedCampaign?.sent ?? 0
+  const clicks = selectedCampaign?.clicks ?? 0
+  const performance = selectedCampaign ? getHomePerformance(selectedCampaign.id) : null
+  const spentRate = performance && performance.budget > 0 ? performance.spent / performance.budget * 100 : 0
+  const chartSeries = performance?.chart?.[granularity] ?? null
+
+  const activeCampaignCount = campaigns.filter(isOngoing).length
   const recentCampaigns = campaigns.length > 0 ? campaigns.slice(0, 10) : mockCampaigns
   const metrics = [
-    { label: '누적 노출 수', value: totalImpressions.toLocaleString('ko-KR'), tone: 'lavender' },
-    { label: '누적 클릭수', value: totalClicks.toLocaleString('ko-KR'), tone: 'dark' },
-    { label: '누적 CTR', value: `${totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(1) : '0.0'}%`, tone: 'pink' },
-    { label: '진행 중인 캠페인', value: activeCampaignCount, tone: 'purple', to: '/campaigns' },
+    { label: '누적 노출 수', value: impressions.toLocaleString('ko-KR'), icon: Eye, tone: 'lavender' },
+    { label: '누적 클릭수', value: clicks.toLocaleString('ko-KR'), icon: MousePointerClick, tone: 'dark' },
+    performance
+      ? { label: '남은 예산', value: formatWon(performance.budget - performance.spent), caption: `예산 소진율 ${Math.round(spentRate)}%`, progress: spentRate, icon: Coins, tone: 'pink' }
+      : { label: '남은 예산', value: '—', caption: '예산 정보 없음', icon: Coins, tone: 'pink' },
+    { label: '진행 중인 캠페인', value: activeCampaignCount, icon: Megaphone, tone: 'purple', to: '/campaigns' },
   ]
 
 
@@ -239,7 +264,8 @@ function Dashboard() {
           <h2 className="mb-2 text-[30px] font-extrabold tracking-tight text-[#111827]">안녕하세요, 광고주님!</h2>
           <p className="text-sm text-gray-500">이번 달 광고 성과 요약을 확인해보세요.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <CampaignSelect options={campaignOptions} value={selectedCampaign?.id} onChange={setSelectedCampaignId} />
           <div className="relative">
             <button
               type="button"
@@ -248,7 +274,10 @@ function Dashboard() {
               aria-expanded={isPresetMenuOpen}
               className="inline-flex min-h-11 min-w-44 items-center justify-between gap-5 rounded-xl border border-[#E4E1F0] bg-white px-4 text-sm font-semibold text-onad-dark shadow-sm transition hover:border-[#CFC4FF] hover:bg-[#FCFBFF] focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-onad-purple"
             >
-              <span>{presetOptions.find(([value]) => value === selectedPreset)?.[1] || '기간 설정'}</span>
+              <span className="flex items-center gap-2">
+                <CalendarDays size={16} className="text-[#7C6DB9]" aria-hidden="true" />
+                {presetOptions.find(([value]) => value === selectedPreset)?.[1] || '기간 설정'}
+              </span>
               <ChevronDown size={16} className={`text-[#7C6DB9] transition-transform ${isPresetMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
             </button>
             {isPresetMenuOpen && (
@@ -344,6 +373,7 @@ function Dashboard() {
             <h2 id="trend-title" className="text-xl font-extrabold tracking-tight text-onad-dark">
               캠페인 성과 추이
             </h2>
+            <p className="mt-1 text-xs text-[#858296]">{selectedCampaign?.name} · 샘플 데이터</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="inline-flex self-start rounded-lg border border-[#E8E6F2] bg-[#F7F7FB] p-0.5 text-xs font-medium sm:self-auto" role="group" aria-label="차트 시간 단위">
@@ -373,7 +403,9 @@ function Dashboard() {
           <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-onad-purple" />노출 수</span>
           <span className="flex items-center gap-2"><span className="h-0.5 w-4 rounded-full bg-[#2A2C41]" />클릭 수</span>
         </div>
-        <TrendChart granularity={granularity} />
+        {chartSeries
+          ? <TrendChart granularity={granularity} series={chartSeries} />
+          : <p className="flex h-96 items-center justify-center rounded-2xl bg-[#F7F7FB] text-sm text-[#858296]">선택한 캠페인의 성과 데이터가 없습니다.</p>}
       </section>
 
       <CampaignTable

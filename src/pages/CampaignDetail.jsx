@@ -3,7 +3,9 @@ import {
   ArrowLeft,
   CalendarDays,
   ChartNoAxesColumnIncreasing,
+  Eye,
   Link2,
+  MousePointerClick,
   UserRound,
   Users,
   X,
@@ -152,9 +154,9 @@ function CampaignDetail() {
     ? `${impressions > 0 ? (clicks / impressions * 100).toFixed(1) : '0.0'}%`
     : '—'
   const metrics = [
-    { label: '누적 노출 수', value: formatCount(impressions), tone: 'lavender' },
-    { label: '누적 클릭수', value: formatCount(clicks), tone: 'dark' },
-    { label: '누적 CTR', value: ctr, tone: 'pink' },
+    { label: '누적 노출 수', value: formatCount(impressions), icon: Eye, tone: 'lavender' },
+    { label: '누적 클릭수', value: formatCount(clicks), icon: MousePointerClick, tone: 'dark' },
+    { label: '누적 CTR', value: ctr, icon: ChartNoAxesColumnIncreasing, tone: 'pink' },
   ]
 
   return (

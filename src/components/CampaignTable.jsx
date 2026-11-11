@@ -1,5 +1,17 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+
+// 기본 → 내림차순 → 오름차순 → 기본
+const nextCtrSort = { null: 'desc', desc: 'asc', asc: null }
+
+// CTR 값이 없는 캠페인은 방향과 상관없이 항상 맨 아래로 보낸다
+function compareCtr(a, b, direction) {
+  const aHasCtr = Number.isFinite(a.ctr)
+  const bHasCtr = Number.isFinite(b.ctr)
+  if (!aHasCtr || !bHasCtr) return Number(bHasCtr) - Number(aHasCtr)
+  return direction === 'asc' ? a.ctr - b.ctr : b.ctr - a.ctr
+}
 
 function CampaignTable({
   campaigns = [],
@@ -15,7 +27,13 @@ function CampaignTable({
   dashboard = false,
   management = false,
   hideHeader = false,
+  sortableCtr = false,
 }) {
+  const [ctrSort, setCtrSort] = useState(null) // null(기본) | 'desc' | 'asc'
+  const displayedCampaigns = sortableCtr && ctrSort
+    ? [...campaigns].sort((a, b) => compareCtr(a, b, ctrSort))
+    : campaigns
+
   return (
     <section className={`overflow-hidden rounded-[2rem] border border-[#ECEAF5] bg-white transition-shadow duration-300 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] ${compact ? 'flex h-full flex-col' : ''} ${management ? 'flex flex-col' : ''}`}>
       {!hideHeader && <div className={`flex flex-wrap items-center justify-between gap-3 border-b border-[#F0EFF7] ${compact ? 'px-8 py-7' : 'px-5 py-5 md:px-7'}`}>
@@ -63,7 +81,26 @@ function CampaignTable({
               <th scope="col" className={compact ? 'hidden' : 'px-4 py-3'}>타겟 조건</th>
               <th scope="col" className={`${compact ? 'px-2 py-3 text-right' : 'px-4 py-3 text-right'}`}>{compact ? '노출수 (IMPR.)' : '발송(노출) 수'}</th>
               <th scope="col" className={compact ? 'hidden' : 'px-4 py-3 text-right'}>클릭 수</th>
-              <th scope="col" className={compact ? 'hidden' : 'px-4 py-3 text-right'}>CTR</th>
+              {sortableCtr ? (
+                <th
+                  scope="col"
+                  aria-sort={ctrSort === 'desc' ? 'descending' : ctrSort === 'asc' ? 'ascending' : 'none'}
+                  className={compact ? 'hidden' : 'px-4 py-3 text-right'}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setCtrSort((current) => nextCtrSort[current])}
+                    className={`inline-flex items-center gap-1 uppercase transition hover:text-onad-purple ${ctrSort ? 'text-onad-purple' : ''}`}
+                  >
+                    CTR
+                    {ctrSort === 'desc' ? <ArrowDown size={14} aria-hidden="true" />
+                      : ctrSort === 'asc' ? <ArrowUp size={14} aria-hidden="true" />
+                        : <ArrowUpDown size={14} aria-hidden="true" />}
+                  </button>
+                </th>
+              ) : (
+                <th scope="col" className={compact ? 'hidden' : 'px-4 py-3 text-right'}>CTR</th>
+              )}
               <th scope="col" className={compact ? 'hidden' : 'px-4 py-3'}>운영 기간</th>
               <th scope="col" className={compact ? 'hidden' : 'px-4 py-3 text-center'}>관리</th>
             </tr>}
@@ -96,7 +133,7 @@ function CampaignTable({
                   등록된 캠페인이 없습니다.
                 </td>
               </tr>
-            ) : campaigns.map((campaign) => {
+            ) : displayedCampaigns.map((campaign) => {
               const active = campaign.status === 'active' || campaign.status === 'ONGOING'
               const pending = campaign.status === 'pending' || campaign.status === 'PENDING'
               const ended = campaign.status === 'ended' || campaign.status === 'ENDED'

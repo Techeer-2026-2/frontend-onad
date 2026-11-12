@@ -13,10 +13,8 @@ import { Link } from 'react-router-dom'
 import CampaignSelect from '../components/CampaignSelect'
 import CampaignTable from '../components/CampaignTable'
 import KpiCard from '../components/kpiCard'
-import { getCampaign, getCampaigns } from '../api/campaigns'
-import { mockCampaigns } from '../mock/campaigns'
+import { getCampaigns } from '../api/campaigns'
 import { mockDashboardChartSeries, mockDashboardDatePresets } from '../mock/dashboard'
-import { getHomePerformance } from '../mock/homePerformance'
 
 function formatTargetAudience(ageGroups, genders) {
   const ages = Array.isArray(ageGroups)
@@ -41,10 +39,12 @@ function toNonnegativeNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
 }
 
-function mapDashboardCampaign(campaign, detail) {
-  const sent = toNonnegativeNumber(detail.impressionCount)
-  const clicks = toNonnegativeNumber(detail.clickCount)
-  if (sent === null || clicks === null) throw new Error('캠페인 상세 통계 응답이 올바르지 않습니다.')
+function mapDashboardCampaign(campaign) {
+  const sent = toNonnegativeNumber(campaign.impressionCount)
+  const clicks = toNonnegativeNumber(campaign.clickCount)
+  if (campaign.campaignId == null || sent === null || clicks === null) {
+    throw new Error('캠페인 목록 응답이 올바르지 않습니다.')
+  }
   return {
     ...campaign,
     id: campaign.campaignId,
@@ -53,7 +53,7 @@ function mapDashboardCampaign(campaign, detail) {
     period: formatCampaignPeriod(campaign.startAt, campaign.endAt),
     sent,
     clicks,
-    ctr: sent !== null && clicks !== null ? (sent > 0 ? clicks / sent * 100 : 0) : null,
+    ctr: sent > 0 ? clicks / sent * 100 : 0,
   }
 }
 
@@ -63,14 +63,6 @@ const presetOptions = [
   ['7days', '최근 7일'],
   ['custom', '직접 설정'],
 ]
-
-function formatDate(date) {
-  return date.replaceAll('-', '.')
-}
-
-function formatWon(value) {
-  return `₩${Math.round(value).toLocaleString('ko-KR')}`
-}
 
 export function TrendChart({ granularity, series = mockDashboardChartSeries[granularity] }) {
   const { labels, impressions, clicks } = series
@@ -170,7 +162,6 @@ function Dashboard() {
   const [errorMessage, setErrorMessage] = useState('')
   const [retryCount, setRetryCount] = useState(0)
   const [selectedPreset, setSelectedPreset] = useState('7days')
-  const [dateLabel, setDateLabel] = useState(mockDashboardDatePresets['7days'].label)
   const [dateInputs, setDateInputs] = useState({ start: '2026-09-01', end: '2026-09-26' })
   const [showCustomDates, setShowCustomDates] = useState(false)
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false)
@@ -181,20 +172,10 @@ function Dashboard() {
   useEffect(() => {
     const controller = new AbortController()
     getCampaigns({ signal: controller.signal })
-      .then(async (response) => {
-        if (!Array.isArray(response)) throw new Error('캠페인 목록 응답 형식이 올바르지 않습니다.')
-        // 각 캠페인의 노출/클릭은 목록이 아닌 상세 응답에서 제공됩니다.
-        const details = []
-        for (let index = 0; index < response.length; index += 5) {
-          const batch = response.slice(index, index + 5)
-          const results = await Promise.all(batch.map((campaign) => {
-            if (campaign.campaignId == null) throw new Error('캠페인 ID가 누락되었습니다.')
-            return getCampaign(campaign.campaignId, { signal: controller.signal })
-          }))
-          details.push(...results)
-        }
+      .then((response) => {
         if (controller.signal.aborted) return
-        setCampaigns(response.map((campaign, index) => mapDashboardCampaign(campaign, details[index])))
+        if (!Array.isArray(response)) throw new Error('캠페인 목록 응답 형식이 올바르지 않습니다.')
+        setCampaigns(response.map(mapDashboardCampaign))
         setErrorMessage('')
       })
       .catch((error) => {
@@ -208,34 +189,24 @@ function Dashboard() {
     return () => controller.abort()
   }, [retryCount])
 
-  const sourceCampaigns = campaigns.length > 0 ? campaigns : mockCampaigns
-  const isOngoing = (campaign) => campaign.status === 'ONGOING' || campaign.status === 'active'
+  const isOngoing = (campaign) => campaign.status === 'ONGOING'
   // 기본 선택: 진행 중인 첫 캠페인 → 없으면 첫 캠페인
-  const defaultCampaign = sourceCampaigns.find(isOngoing) ?? sourceCampaigns[0]
-  const selectedCampaign = sourceCampaigns.find((campaign) => campaign.id === selectedCampaignId) ?? defaultCampaign
-  const campaignOptions = sourceCampaigns.map((campaign) => ({ value: campaign.id, label: campaign.name }))
-
-  const impressions = selectedCampaign?.sent ?? 0
-  const clicks = selectedCampaign?.clicks ?? 0
-  const performance = selectedCampaign ? getHomePerformance(selectedCampaign.id) : null
-  const spentRate = performance && performance.budget > 0 ? performance.spent / performance.budget * 100 : 0
-  const chartSeries = performance?.chart?.[granularity] ?? null
+  const defaultCampaign = campaigns.find(isOngoing) ?? campaigns[0]
+  const selectedCampaign = campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? defaultCampaign
+  const campaignOptions = campaigns.map((campaign) => ({ value: campaign.id, label: campaign.name }))
 
   const activeCampaignCount = campaigns.filter(isOngoing).length
-  const recentCampaigns = campaigns.length > 0 ? campaigns.slice(0, 10) : mockCampaigns
+  const recentCampaigns = campaigns.slice(0, 10)
   const metrics = [
-    { label: '누적 노출 수', value: impressions.toLocaleString('ko-KR'), icon: Eye, tone: 'lavender' },
-    { label: '누적 클릭수', value: clicks.toLocaleString('ko-KR'), icon: MousePointerClick, tone: 'dark' },
-    performance
-      ? { label: '남은 예산', value: formatWon(performance.budget - performance.spent), caption: `예산 소진율 ${Math.round(spentRate)}%`, progress: spentRate, icon: Coins, tone: 'pink' }
-      : { label: '남은 예산', value: '—', caption: '예산 정보 없음', icon: Coins, tone: 'pink' },
+    { label: '누적 노출 수', value: selectedCampaign?.sent.toLocaleString('ko-KR') ?? '—', icon: Eye, tone: 'lavender' },
+    { label: '누적 클릭수', value: selectedCampaign?.clicks.toLocaleString('ko-KR') ?? '—', icon: MousePointerClick, tone: 'dark' },
+    { label: '남은 예산', value: '—', caption: '예산 정보 없음', icon: Coins, tone: 'pink' },
     { label: '진행 중인 캠페인', value: activeCampaignCount, icon: Megaphone, tone: 'purple', to: '/campaigns' },
   ]
 
 
   const applyPreset = (preset) => {
     setSelectedPreset(preset)
-    setDateLabel(mockDashboardDatePresets[preset].label)
     setDateInputs({ start: mockDashboardDatePresets[preset].start, end: mockDashboardDatePresets[preset].end })
     setDateError('')
   }
@@ -252,7 +223,6 @@ function Dashboard() {
     }
 
     setSelectedPreset('custom')
-    setDateLabel(`${formatDate(start)} ~ ${formatDate(end)} (샘플 데이터)`)
     setDateError('')
     setShowCustomDates(false)
   }
@@ -262,10 +232,12 @@ function Dashboard() {
       <section className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
           <h2 className="mb-2 text-[30px] font-extrabold tracking-tight text-[#111827]">안녕하세요, 광고주님!</h2>
-          <p className="text-sm text-gray-500">이번 달 광고 성과 요약을 확인해보세요.</p>
+          <p className="text-sm text-gray-500">캠페인별 누적 광고 성과를 확인해보세요.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <CampaignSelect options={campaignOptions} value={selectedCampaign?.id} onChange={setSelectedCampaignId} />
+          {selectedCampaign && (
+            <CampaignSelect options={campaignOptions} value={selectedCampaign.id} onChange={setSelectedCampaignId} />
+          )}
           <div className="relative">
             <button
               type="button"
@@ -359,6 +331,8 @@ function Dashboard() {
             <p className="text-rose-600">{errorMessage}</p>
             <button type="button" className="mt-3 rounded-lg border px-3 py-2 text-xs font-semibold" onClick={() => { setIsLoading(true); setErrorMessage(''); setRetryCount((n) => n + 1) }}>다시 시도</button>
           </div>
+        ) : !selectedCampaign ? (
+          <p role="status" className="rounded-xl border bg-white p-5 text-sm text-[#667085]">등록된 캠페인이 없어요.</p>
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {metrics.map((metric) => <KpiCard key={metric.tone} {...metric} />)}
@@ -373,7 +347,7 @@ function Dashboard() {
             <h2 id="trend-title" className="text-xl font-extrabold tracking-tight text-onad-dark">
               캠페인 성과 추이
             </h2>
-            <p className="mt-1 text-xs text-[#858296]">{selectedCampaign?.name} · 샘플 데이터</p>
+            {selectedCampaign && <p className="mt-1 text-xs text-[#858296]">{selectedCampaign.name}</p>}
           </div>
           <div className="flex items-center gap-3">
             <div className="inline-flex self-start rounded-lg border border-[#E8E6F2] bg-[#F7F7FB] p-0.5 text-xs font-medium sm:self-auto" role="group" aria-label="차트 시간 단위">
@@ -403,9 +377,7 @@ function Dashboard() {
           <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-onad-purple" />노출 수</span>
           <span className="flex items-center gap-2"><span className="h-0.5 w-4 rounded-full bg-[#2A2C41]" />클릭 수</span>
         </div>
-        {chartSeries
-          ? <TrendChart granularity={granularity} series={chartSeries} />
-          : <p className="flex h-96 items-center justify-center rounded-2xl bg-[#F7F7FB] text-sm text-[#858296]">선택한 캠페인의 성과 데이터가 없습니다.</p>}
+        <p className="flex h-96 items-center justify-center rounded-2xl bg-[#F7F7FB] text-sm text-[#858296]">기간별 성과 데이터는 연동 준비 중입니다.</p>
       </section>
 
       <CampaignTable

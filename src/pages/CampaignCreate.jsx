@@ -11,6 +11,22 @@ const initialFormData = {
   linkUrl: '',
   startAt: '',
   endAt: '',
+  targetClicks: '', // 숫자만 담긴 문자열, 예: "10000"
+  budget: '', // 숫자만 담긴 문자열, 예: "5000000"
+}
+
+const MIN_BUDGET = 10_000
+const MAX_BUDGET = 1_000_000_000
+const MAX_TARGET_CLICKS = 10_000_000
+
+// 숫자만 남기고 앞쪽 0을 지운다: "0,05,000원" → "5000"
+function toDigits(value) {
+  return value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 12)
+}
+
+// 화면 표시용 천 단위 구분: "5000000" → "5,000,000"
+function formatThousands(digits) {
+  return digits ? Number(digits).toLocaleString('ko-KR') : ''
 }
 
 const inputClassName =
@@ -26,7 +42,7 @@ function isHttpUrl(value) {
   }
 }
 
-function validateForm(formData) {
+function validateForm(formData, { isEditMode = false } = {}) {
   const errors = {}
   if (!formData.title.trim()) errors.title = '캠페인 제목을 입력해 주세요.'
   if (!formData.body.trim()) errors.body = '캠페인 내용을 입력해 주세요.'
@@ -36,6 +52,20 @@ function validateForm(formData) {
   if (!formData.endAt) errors.endAt = '종료 일시를 입력해 주세요.'
   if (formData.startAt && formData.endAt && new Date(formData.endAt) <= new Date(formData.startAt)) {
     errors.endAt = '종료 일시는 시작 일시보다 늦어야 합니다.'
+  }
+
+  // 목표 클릭수·예산은 아직 API로 저장되지 않아서 등록 화면에서만 검사한다
+  if (!isEditMode) {
+    const budget = Number(formData.budget)
+    if (!formData.budget) errors.budget = '캠페인 예산을 입력해 주세요.'
+    else if (budget < MIN_BUDGET) errors.budget = '캠페인 예산은 10,000원 이상이어야 합니다.'
+    else if (budget > MAX_BUDGET) errors.budget = '캠페인 예산은 10억 원 이하로 입력해 주세요.'
+
+    if (formData.targetClicks) {
+      const targetClicks = Number(formData.targetClicks)
+      if (targetClicks < 1) errors.targetClicks = '목표 클릭수는 1회 이상이어야 합니다.'
+      else if (targetClicks > MAX_TARGET_CLICKS) errors.targetClicks = '목표 클릭수는 1,000만 회 이하로 입력해 주세요.'
+    }
   }
   return errors
 }
@@ -162,12 +192,19 @@ function CampaignCreate() {
     }
   }, [previewUrl])
 
-  function handleChange(event) {
-    const { name, value } = event.target
+  function updateField(name, value) {
     const nextFormData = { ...formData, [name]: value }
     setFormData(nextFormData)
     setNotice('')
-    if (hasSubmitted) setErrors(validateForm(nextFormData))
+    if (hasSubmitted) setErrors(validateForm(nextFormData, { isEditMode }))
+  }
+
+  function handleChange(event) {
+    updateField(event.target.name, event.target.value)
+  }
+
+  function handleNumberChange(event) {
+    updateField(event.target.name, toDigits(event.target.value))
   }
 
   function toggleAgeGroup(ageGroup) {
@@ -226,8 +263,11 @@ function CampaignCreate() {
     event.preventDefault()
     setHasSubmitted(true)
     const submittedFormData = { ...formData, ...Object.fromEntries(new FormData(event.currentTarget)) }
+    // 화면의 "5,000,000" 같은 표시값을 숫자만 남긴 값으로 되돌린다
+    submittedFormData.budget = toDigits(submittedFormData.budget)
+    submittedFormData.targetClicks = toDigits(submittedFormData.targetClicks)
     setFormData(submittedFormData)
-    const nextErrors = validateForm(submittedFormData)
+    const nextErrors = validateForm(submittedFormData, { isEditMode })
     if (imageError) nextErrors.imageFile = imageError
     if (!isEditMode && !selectedImage) nextErrors.imageFile = '배너 이미지 파일을 선택해 주세요.'
     if (selectedAgeGroups.length === 0 || selectedAgeGroups.some((age) => !ageGroupValues[age])) nextErrors.targetAgeGroups = '타겟 연령을 선택해 주세요.'
@@ -379,6 +419,50 @@ function CampaignCreate() {
               </div>
             </SectionCard>
           </div>
+
+          {!isEditMode && (
+            <SectionCard number="04" title="목표 및 예산 설정">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField id="targetClicks" label="목표 클릭수" description="선택 입력이에요. 캠페인의 목표 총 클릭수입니다." error={errors.targetClicks}>
+                  <div className="relative">
+                    <input
+                      id="targetClicks"
+                      name="targetClicks"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={formatThousands(formData.targetClicks)}
+                      onChange={handleNumberChange}
+                      aria-invalid={Boolean(errors.targetClicks)}
+                      aria-describedby={describedBy('targetClicks', errors.targetClicks)}
+                      className={`${inputClassName} pr-10`}
+                      placeholder="예: 10,000"
+                    />
+                    <span aria-hidden="true" className="pointer-events-none absolute bottom-0 right-4 top-1.5 flex items-center text-sm text-gray-400">회</span>
+                  </div>
+                </FormField>
+
+                <FormField id="budget" label="캠페인 예산" required description="10,000원 ~ 10억 원 사이로 입력해 주세요." error={errors.budget}>
+                  <div className="relative">
+                    <input
+                      id="budget"
+                      name="budget"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={formatThousands(formData.budget)}
+                      onChange={handleNumberChange}
+                      aria-invalid={Boolean(errors.budget)}
+                      aria-describedby={describedBy('budget', errors.budget)}
+                      className={`${inputClassName} pr-10`}
+                      placeholder="예: 5,000,000"
+                    />
+                    <span aria-hidden="true" className="pointer-events-none absolute bottom-0 right-4 top-1.5 flex items-center text-sm text-gray-400">원</span>
+                  </div>
+                </FormField>
+              </div>
+            </SectionCard>
+          )}
 
           {notice && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{notice}</p>}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

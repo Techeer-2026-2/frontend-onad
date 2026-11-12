@@ -14,6 +14,11 @@ export function getCampaign(campaignId, { signal } = {}) {
   return apiRequest(`/api/v1/campaigns/${encodeURIComponent(campaignId)}`, { signal })
 }
 
+export function getCampaignTimeseries(campaignId, { from, to, granularity, signal }) {
+  const query = new URLSearchParams({ from, to, granularity })
+  return apiRequest(`/api/v1/campaigns/${encodeURIComponent(campaignId)}/stats/timeseries?${query}`, { signal })
+}
+
 function createCampaignFormData(payload, image) {
   const formData = new FormData()
   formData.append('request', new Blob([JSON.stringify(payload)], { type: 'application/json' }))

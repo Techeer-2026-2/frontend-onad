@@ -16,6 +16,28 @@ import KpiCard from '../components/kpiCard'
 import { getCampaigns } from '../api/campaigns'
 import { mockDashboardChartSeries, mockDashboardDatePresets } from '../mock/dashboard'
 
+function remainingBudgetMetric(campaign) {
+  const budget = toNonnegativeNumber(campaign?.budget)
+  const spent = toNonnegativeNumber(campaign?.spentAmount)
+  const card = { label: '남은 예산', icon: Coins, tone: 'pink' }
+
+  if (budget === null || budget === 0) {
+    return { ...card, value: '—', caption: '예산 미설정' }
+  }
+  if (spent === null) {
+    return { ...card, value: '—', caption: '집행액 미집계' }
+  }
+
+  const remaining = Math.max(0, budget - spent)
+  const usageRate = toNonnegativeNumber(campaign.budgetUsageRate) ?? spent / budget * 100
+  return {
+    ...card,
+    value: `₩${remaining.toLocaleString('ko-KR')}`,
+    caption: `예산 소진율 ${usageRate.toLocaleString('ko-KR', { maximumFractionDigits: 1 })}%`,
+    progress: Math.min(usageRate, 100),
+  }
+}
+
 function formatTargetAudience(ageGroups, genders) {
   const ages = Array.isArray(ageGroups)
     ? ageGroups.includes('all') ? ['전체 연령'] : ageGroups.map((value) => value.replace(/^(\d+)s$/, '$1대'))
@@ -200,7 +222,7 @@ function Dashboard() {
   const metrics = [
     { label: '누적 노출 수', value: selectedCampaign?.sent.toLocaleString('ko-KR') ?? '—', icon: Eye, tone: 'lavender' },
     { label: '누적 클릭수', value: selectedCampaign?.clicks.toLocaleString('ko-KR') ?? '—', icon: MousePointerClick, tone: 'dark' },
-    { label: '남은 예산', value: '—', caption: '예산 정보 없음', icon: Coins, tone: 'pink' },
+    remainingBudgetMetric(selectedCampaign),
     { label: '진행 중인 캠페인', value: activeCampaignCount, icon: Megaphone, tone: 'purple', to: '/campaigns' },
   ]
 

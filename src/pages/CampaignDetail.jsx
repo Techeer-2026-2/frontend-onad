@@ -13,7 +13,8 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import KpiCard from '../components/kpiCard'
 import CampaignPreview from '../components/CampaignPreview'
-import { TrendChart } from './Dashboard'
+import CampaignBudgetSection from '../components/CampaignBudgetSection'
+import CampaignTrendSection from '../components/CampaignTrendSection'
 import { deleteCampaign, getCampaign } from '../api/campaigns'
 import { subscribeCampaignStats } from '../api/campaignStats'
 import { getMockCampaignDetail } from '../mock/campaignDetails'
@@ -219,12 +220,8 @@ function CampaignDetail() {
               </div>
             </div>
           </section>
-          <section aria-label="광고 성과 추이" className="flex flex-col space-y-4 rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="border-b border-[#F0EFF7] pb-3 text-sm font-bold text-[#2A2C41]">광고 성과 추이</h2>
-            <div className="pt-4">
-              <TrendChart granularity="day" />
-            </div>
-          </section>
+          <CampaignTrendSection campaignId={campaignId} />
+          <CampaignBudgetSection campaignId={campaignId} />
         </div>
         <div className="space-y-6">
           <aside className="rounded-[2rem] border border-[#ECEAF5] bg-white p-5 shadow-sm"><h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#858296]">Live Preview</h3><CampaignPreview title={campaign.title} body={campaign.body} imageUrl={campaign.imageUrl} /></aside>

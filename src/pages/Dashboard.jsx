@@ -16,11 +16,13 @@ import KpiCard from "../components/kpiCard";
 import MetricTrendChart from "../components/MetricTrendChart";
 import { getCampaign, getCampaigns } from "../api/campaigns";
 import { mockCampaigns } from "../mock/campaigns";
-import {
-  mockDashboardChartSeries,
-  mockDashboardDatePresets,
-} from "../mock/dashboard";
+import { mockDashboardDatePresets } from "../mock/dashboard";
 import { getCampaignPerformance } from "../api/campaignPerformance";
+import {
+  chartMetrics,
+  formatWon,
+  getMetricValues,
+} from "../utils/chartMetrics";
 
 function formatTargetAudience(ageGroups, genders) {
   const ages = Array.isArray(ageGroups)
@@ -94,216 +96,6 @@ const presetOptions = [
 
 function formatDate(date) {
   return date.replaceAll("-", ".");
-}
-
-function formatWon(value) {
-  return `₩${Math.round(value).toLocaleString("ko-KR")}`;
-}
-
-// 성과 그래프 탭: 각 지표의 계산식과 단위 표시 방법
-const chartMetrics = {
-  ctr: {
-    label: "CTR",
-    description: "클릭률",
-    unit: "%",
-    calc: ({ impressions, clicks }) =>
-      impressions > 0 ? (clicks / impressions) * 100 : 0,
-    format: (value) => `${value.toFixed(2)}%`,
-  },
-  cpc: {
-    label: "CPC",
-    description: "클릭당 비용",
-    unit: "원",
-    calc: ({ clicks, spent }) => (clicks > 0 ? spent / clicks : 0),
-    format: formatWon,
-  },
-  cpm: {
-    label: "CPM",
-    description: "1,000회 노출당 비용",
-    unit: "원",
-    calc: ({ impressions, spent }) =>
-      impressions > 0 ? (spent / impressions) * 1000 : 0,
-    format: formatWon,
-  },
-};
-
-export function TrendChart({
-  granularity,
-  series = mockDashboardChartSeries[granularity],
-}) {
-  const { labels, impressions, clicks } = series;
-  const [hoveredIndex, setHoveredIndex] = useState(null);
-  const width = 760;
-  const height = 290;
-  const left = 24;
-  const right = 24;
-  const top = 18;
-  const bottom = 45;
-  const chartWidth = width - left - right;
-  const chartHeight = height - top - bottom;
-  const maxImpressions = Math.ceil(Math.max(...impressions) / 1000) * 1000;
-  const maxClicks = Math.max(...clicks);
-  const step = chartWidth / labels.length;
-  const barWidth = Math.min(46, step * 0.34);
-  const clickPoints = clicks
-    .map((value, index) => {
-      const x = left + step * index + step / 2;
-      const y =
-        top +
-        chartHeight -
-        (value / maxClicks) * chartHeight * 0.72 -
-        chartHeight * 0.1;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <div className="w-full min-w-0">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label={`${granularity === "hour" ? "시간" : granularity === "day" ? "일" : "주"} 단위 노출 및 클릭 추이 샘플 차트`}
-        className="h-96 w-full"
-        onMouseLeave={() => setHoveredIndex(null)}
-      >
-        <line
-          x1={left}
-          x2={width - right}
-          y1={top + chartHeight}
-          y2={top + chartHeight}
-          stroke="#E8E6F2"
-        />
-
-        {impressions.map((value, index) => {
-          const x = left + step * index + (step - barWidth) / 2;
-          const barHeight = (value / maxImpressions) * chartHeight;
-          return (
-            <rect
-              key={labels[index]}
-              x={x}
-              y={top + chartHeight - barHeight}
-              width={barWidth}
-              height={barHeight}
-              rx="8"
-              fill="#6C48F5"
-              opacity="0.95"
-            />
-          );
-        })}
-        <polyline
-          points={clickPoints}
-          fill="none"
-          stroke="#2A2C41"
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {clicks.map((value, index) => {
-          const x = left + step * index + step / 2;
-          const y =
-            top +
-            chartHeight -
-            (value / maxClicks) * chartHeight * 0.72 -
-            chartHeight * 0.1;
-          return (
-            <circle
-              key={`click-${labels[index]}`}
-              cx={x}
-              cy={y}
-              r="3"
-              fill="#2A2C41"
-              stroke="#2A2C41"
-              strokeWidth="3"
-            />
-          );
-        })}
-        {labels.map((label, index) => (
-          <rect
-            key={`hit-${label}`}
-            x={left + step * index}
-            y={top}
-            width={step}
-            height={chartHeight}
-            fill="transparent"
-            onMouseEnter={() => setHoveredIndex(index)}
-          />
-        ))}
-        {hoveredIndex !== null &&
-          (() => {
-            const tooltipWidth = 132;
-            const tooltipHeight = 68;
-            const centerX = left + step * hoveredIndex + step / 2;
-            const tooltipX = Math.min(
-              Math.max(centerX - tooltipWidth / 2, left),
-              width - right - tooltipWidth,
-            );
-            const tooltipY = top + 8;
-            return (
-              <g pointerEvents="none">
-                <rect
-                  x={tooltipX}
-                  y={tooltipY}
-                  width={tooltipWidth}
-                  height={tooltipHeight}
-                  rx="10"
-                  fill="white"
-                  stroke="#E8E6F2"
-                />
-                <text
-                  x={tooltipX + 12}
-                  y={tooltipY + 18}
-                  fill="#2A2C41"
-                  fontSize="10"
-                  fontWeight="700"
-                >
-                  {labels[hoveredIndex]}
-                </text>
-                <circle
-                  cx={tooltipX + 16}
-                  cy={tooltipY + 35}
-                  r="3"
-                  fill="#6C48F5"
-                />
-                <text
-                  x={tooltipX + 24}
-                  y={tooltipY + 39}
-                  fill="#6F6C80"
-                  fontSize="10"
-                >
-                  노출 {impressions[hoveredIndex].toLocaleString()}
-                </text>
-                <circle
-                  cx={tooltipX + 16}
-                  cy={tooltipY + 53}
-                  r="3"
-                  fill="#2A2C41"
-                />
-                <text
-                  x={tooltipX + 24}
-                  y={tooltipY + 57}
-                  fill="#6F6C80"
-                  fontSize="10"
-                >
-                  클릭 {clicks[hoveredIndex].toLocaleString()}
-                </text>
-              </g>
-            );
-          })()}
-        {labels.map((label, index) => (
-          <text
-            key={label}
-            x={left + step * index + step / 2}
-            y={height - 14}
-            textAnchor="middle"
-            fill="#9A97A7"
-            fontSize="11"
-          >
-            {label}
-          </text>
-        ))}
-      </svg>
-    </div>
-  );
 }
 
 function Dashboard() {
@@ -422,13 +214,7 @@ function Dashboard() {
   const chartSeries = performance?.chart?.[granularity] ?? null;
   const metric = chartMetrics[chartMetric];
   const metricValues = chartSeries
-    ? chartSeries.labels.map((_, index) =>
-        metric.calc({
-          impressions: chartSeries.impressions[index],
-          clicks: chartSeries.clicks[index],
-          spent: chartSeries.spent[index],
-        }),
-      )
+    ? getMetricValues(chartSeries, metric)
     : [];
 
   const activeCampaignCount = campaigns.filter(isOngoing).length;

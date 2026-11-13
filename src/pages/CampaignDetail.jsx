@@ -13,11 +13,9 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import KpiCard from '../components/kpiCard'
 import CampaignPreview from '../components/CampaignPreview'
-import { TrendChart } from './Dashboard'
+import { CampaignAgeStats, CampaignSummaryAndReport, CampaignTrend } from '../components/CampaignInsights'
 import { deleteCampaign, getCampaign } from '../api/campaigns'
 import { subscribeCampaignStats } from '../api/campaignStats'
-import { getMockCampaignDetail } from '../mock/campaignDetails'
-import { mockAgeCtrLift } from '../mock/campaignAnalytics'
 
 function getAgeGroupChips(values) {
   if (!Array.isArray(values) || values.length === 0) return ['—']
@@ -63,24 +61,12 @@ function CampaignDetail() {
   const [deleteError, setDeleteError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
   const [liveStats, setLiveStats] = useState(null)
-  const [streamStatus, setStreamStatus] = useState('connecting')
-  const [streamError, setStreamError] = useState('')
-  const mockCampaign = getMockCampaignDetail(campaignId)
-  const isMockCampaign = Boolean(mockCampaign)
-
   useEffect(() => {
-    if (mockCampaign) {
-      setCampaign(mockCampaign)
-      setLoadedCampaignId(campaignId)
-      setErrorMessage('')
-      setIsLoading(false)
-      return undefined
-    }
-
     const controller = new AbortController()
 
     getCampaign(campaignId, { signal: controller.signal })
       .then((response) => {
+        if (controller.signal.aborted) return
         if (!response || typeof response !== 'object') {
           throw new Error('캠페인 상세 응답 형식이 올바르지 않습니다.')
         }
@@ -88,7 +74,7 @@ function CampaignDetail() {
         setLoadedCampaignId(campaignId)
       })
       .catch((error) => {
-        if (error.name !== 'AbortError') {
+        if (!controller.signal.aborted) {
           setCampaign(null)
           setErrorMessage(error.message || '캠페인 정보를 불러오지 못했습니다.')
         }
@@ -98,24 +84,20 @@ function CampaignDetail() {
       })
 
     return () => controller.abort()
-  }, [campaignId, mockCampaign, retryCount])
+  }, [campaignId, retryCount])
 
   useEffect(() => {
-    if (isMockCampaign) {
-      setStreamStatus('mock')
-      setStreamError('')
-      return undefined
-    }
+    if (loadedCampaignId !== campaignId) return undefined
 
     const controller = new AbortController()
     subscribeCampaignStats(campaignId, {
       signal: controller.signal,
       onStats: (stats) => setLiveStats({ ...stats, campaignId }),
-      onStatus: (status) => setStreamStatus(status),
-      onError: (message) => setStreamError(message),
+      onStatus: () => {},
+      onError: () => {},
     })
     return () => controller.abort()
-  }, [campaignId, isMockCampaign])
+  }, [campaignId, loadedCampaignId])
 
   async function handleDelete() {
     if (!window.confirm('캠페인을 삭제할까요? 삭제한 캠페인은 복구할 수 없습니다.')) return
@@ -175,7 +157,7 @@ function CampaignDetail() {
         </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           <div className="flex flex-wrap items-center gap-2">
-            {!isMockCampaign && campaign.status !== 'ENDED' && <>
+            {campaign.status !== 'ENDED' && <>
               <Link to={`/campaigns/${campaignId}/edit`} className="inline-flex min-h-8 items-center rounded-lg border border-[#DED9FA] bg-[#F8F7FF] px-3 text-xs font-semibold text-[#6C48F5] hover:bg-[#F0EDFF]">캠페인 수정</Link>
               <button type="button" disabled title="캠페인 발송/상태 변경 API는 Swagger에 없습니다." className="min-h-8 cursor-not-allowed rounded-lg bg-[#2A2C41] px-3 text-xs font-semibold text-white/50">{campaign.status === 'ONGOING' ? '캠페인 일시정지' : '캠페인 재개'}</button>
               <button type="button" onClick={handleDelete} disabled={isDeleting} className="min-h-8 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60">{isDeleting ? '삭제 중…' : '캠페인 삭제'}</button>
@@ -219,27 +201,12 @@ function CampaignDetail() {
               </div>
             </div>
           </section>
-          <section aria-label="광고 성과 추이" className="flex flex-col space-y-4 rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="border-b border-[#F0EFF7] pb-3 text-sm font-bold text-[#2A2C41]">광고 성과 추이</h2>
-            <div className="pt-4">
-              <TrendChart granularity="day" />
-            </div>
-          </section>
+          <CampaignTrend key={campaignId} campaignId={campaignId} />
         </div>
         <div className="space-y-6">
           <aside className="rounded-[2rem] border border-[#ECEAF5] bg-white p-5 shadow-sm"><h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#858296]">Live Preview</h3><CampaignPreview title={campaign.title} body={campaign.body} imageUrl={campaign.imageUrl} /></aside>
-          <section aria-label="타겟 연령 조건별 CTR Lift 분석" className="rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm">
-            <h2 className="border-b border-[#F0EFF7] pb-3 text-sm font-bold text-[#2A2C41]">타겟 연령 조건별 CTR Lift 분석</h2>
-            <div className="space-y-5 py-4">
-              {mockAgeCtrLift.map((item) => (
-                <div key={item.age}>
-                  <div className="mb-2 flex items-center justify-between text-xs"><span className="font-bold text-[#2A2C41]">{item.age}</span><span className="font-bold text-[#6C48F5]">CTR {item.ctr}%</span></div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[#F0EDFF]"><div className="h-full rounded-full bg-linear-to-r from-[#8061F9] to-[#6C48F5]" style={{ width: `${Math.min(item.ctr / 5 * 100, 100)}%` }} /></div>
-                  <p className={`mt-1 text-[11px] font-semibold ${item.lift.startsWith('+') ? 'text-[#16A34A]' : 'text-[#FF6B8B]'}`}>평균 대비 {item.lift}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+          <CampaignAgeStats key={campaignId} campaignId={campaignId} />
+          <CampaignSummaryAndReport key={campaignId} campaignId={campaignId} />
         </div>
       </div>
     </div>

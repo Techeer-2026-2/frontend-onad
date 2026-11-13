@@ -13,8 +13,10 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import KpiCard from '../components/kpiCard'
 import CampaignPreview from '../components/CampaignPreview'
+import AiSummaryCard from '../components/AiSummaryCard'
 import CampaignBudgetSection from '../components/CampaignBudgetSection'
 import CampaignTrendSection from '../components/CampaignTrendSection'
+import GoalProgressCard from '../components/GoalProgressCard'
 import { deleteCampaign, getCampaign } from '../api/campaigns'
 import { subscribeCampaignStats } from '../api/campaignStats'
 import { getMockCampaignDetail } from '../mock/campaignDetails'
@@ -224,6 +226,8 @@ function CampaignDetail() {
           <CampaignBudgetSection campaignId={campaignId} />
         </div>
         <div className="space-y-6">
+          <GoalProgressCard targetClicks={campaign.targetClicks} clicks={clicks} />
+          <AiSummaryCard key={campaignId} campaignId={campaignId} />
           <aside className="rounded-[2rem] border border-[#ECEAF5] bg-white p-5 shadow-sm"><h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#858296]">Live Preview</h3><CampaignPreview title={campaign.title} body={campaign.body} imageUrl={campaign.imageUrl} /></aside>
           <section aria-label="타겟 연령 조건별 CTR Lift 분석" className="rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm">
             <h2 className="border-b border-[#F0EFF7] pb-3 text-sm font-bold text-[#2A2C41]">타겟 연령 조건별 CTR Lift 분석</h2>

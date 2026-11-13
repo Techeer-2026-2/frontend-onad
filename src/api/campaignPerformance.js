@@ -1,5 +1,27 @@
 import { getMockDailyTrend } from '../mock/campaignDailyTrend'
+import { mockCampaignSummaries } from '../mock/campaignSummaries'
 import { getHomePerformance } from '../mock/homePerformance'
+
+const MOCK_AI_DELAY_MS = 1200
+
+// 요청이 취소되면 바로 멈추는 대기 함수 (Mock에서 AI 응답 시간을 흉내 낸다)
+function wait(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }, { once: true })
+  })
+}
+
+// 캠페인 AI 성과 요약
+// TODO: API가 생기면 apiRequest(`/api/v1/campaigns/${id}/summary`)로 바꾼다. (팀원 PR #61 참고)
+// 반환 형태: { summary } 또는 null(분석 결과 없음)
+export async function getCampaignSummary(campaignId, { signal } = {}) {
+  await wait(MOCK_AI_DELAY_MS, signal)
+  return mockCampaignSummaries[campaignId] ?? null
+}
 
 // 캠페인 성과(예산·집행 금액·기간별 노출/클릭/집행 추이)를 가져온다.
 // 백엔드 통계 API가 아직 없어서 Mock을 Promise로 감싸 반환한다.

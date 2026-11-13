@@ -41,6 +41,10 @@ function formatCount(value) {
   return Number.isFinite(value) ? value.toLocaleString() : '—'
 }
 
+function formatWon(value) {
+  return Number.isFinite(value) ? `${formatCount(value)}원` : '—'
+}
+
 function getStatus(status) {
   const statuses = {
     ONGOING: { label: '진행중', className: 'bg-[#FFF0F3] text-[#FF6B8B]' },
@@ -140,6 +144,14 @@ function CampaignDetail() {
     { label: '누적 클릭수', value: formatCount(clicks), icon: MousePointerClick, tone: 'dark' },
     { label: '누적 CTR', value: ctr, icon: ChartNoAxesColumnIncreasing, tone: 'pink' },
   ]
+  const budgetRows = [
+    ['총 예산', formatWon(campaign.totalBudget)],
+    ['남은 예산', formatWon(campaign.remainingBudget)],
+    ['노출당 입찰가', formatWon(campaign.bidPrice)],
+    ['목표 클릭수', Number.isFinite(campaign.targetClicks) ? `${formatCount(campaign.targetClicks)}회` : '—'],
+  ]
+  if (Number.isFinite(campaign.budgetUsageRate)) budgetRows.push(['예산 소진율', `${campaign.budgetUsageRate}%`])
+  if (Number.isFinite(campaign.targetClickRate)) budgetRows.push(['목표 클릭 달성률', `${campaign.targetClickRate}%`])
 
   return (
     <div className="mx-auto max-w-7xl space-y-7">
@@ -201,6 +213,19 @@ function CampaignDetail() {
               </div>
             </div>
           </section>
+          {Number.isFinite(campaign.totalBudget) && (
+            <section aria-label="캠페인 예산 및 목표" className="space-y-4 rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-bold text-[#2A2C41]">캠페인 예산 및 목표</h2>
+              <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+                {budgetRows.map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-[#667085]">{label}</dt>
+                    <dd className="mt-1 font-semibold text-[#2A2C41]">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
           <CampaignTrend key={campaignId} campaignId={campaignId} />
         </div>
         <div className="space-y-6">

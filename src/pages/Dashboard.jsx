@@ -107,7 +107,7 @@ function formatWon(value) {
   return `₩${Math.round(value).toLocaleString("ko-KR")}`;
 }
 
-// 성과 그래프 탭: 각 지표의 계산식과 단위 표시 방법
+// 서버가 계산한 각 지표의 단위와 표시 형식
 const chartMetrics = {
   ctr: {
     label: "CTR",

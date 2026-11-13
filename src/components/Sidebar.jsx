@@ -74,6 +74,7 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
         aria-label="ONAD 대시보드로 이동"
         className="flex shrink-0 items-center gap-2 text-left"
       >
+        <img src="/favicon.png" alt="" className="h-8 w-8" />
         <span className="text-[26px] font-bold tracking-tight text-[#6C48F5]">
           ONAD
         </span>

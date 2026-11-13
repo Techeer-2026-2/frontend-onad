@@ -4,6 +4,7 @@ const WIDTH = 760
 const HEIGHT = 290
 const PADDING = { top: 18, right: 24, bottom: 45, left: 64 }
 const GRID_COUNT = 4
+const MAX_X_LABELS = 10
 
 function MetricTrendChart({ labels, values, metricLabel, formatValue }) {
   const [hoveredIndex, setHoveredIndex] = useState(null)
@@ -13,6 +14,8 @@ function MetricTrendChart({ labels, values, metricLabel, formatValue }) {
   // 최댓값보다 20% 여유를 둬서 선이 위쪽 끝에 붙지 않게 한다 (값이 모두 0이면 1로 나눈다)
   const maxValue = Math.max(...values) * 1.2 || 1
   const step = chartWidth / labels.length
+  // 라벨이 많으면 몇 칸마다 하나씩만 표시한다 (7개 → 전부, 30개 → 3칸마다)
+  const labelStep = Math.ceil(labels.length / MAX_X_LABELS)
 
   const points = values.map((value, index) => ({
     x: PADDING.left + step * index + step / 2,
@@ -63,9 +66,12 @@ function MetricTrendChart({ labels, values, metricLabel, formatValue }) {
         })()}
 
         {/* x축 라벨 */}
-        {labels.map((label, index) => (
-          <text key={label} x={PADDING.left + step * index + step / 2} y={HEIGHT - 14} textAnchor="middle" fill="#9A97A7" fontSize="11">{label}</text>
-        ))}
+        {labels.map((label, index) =>
+          // 마지막 날짜(가장 최근)는 항상 보이도록 끝에서부터 센다
+          (labels.length - 1 - index) % labelStep === 0 && (
+            <text key={label} x={PADDING.left + step * index + step / 2} y={HEIGHT - 14} textAnchor="middle" fill="#9A97A7" fontSize="11">{label}</text>
+          ),
+        )}
       </svg>
     </div>
   )

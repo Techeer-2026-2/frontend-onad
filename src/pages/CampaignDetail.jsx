@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   CalendarDays,
   ChartNoAxesColumnIncreasing,
+  Download,
   Eye,
   Link2,
   MousePointerClick,
@@ -17,6 +18,7 @@ import AiSummaryCard from '../components/AiSummaryCard'
 import CampaignBudgetSection from '../components/CampaignBudgetSection'
 import CampaignTrendSection from '../components/CampaignTrendSection'
 import GoalProgressCard from '../components/GoalProgressCard'
+import ReportDownloadModal from '../components/ReportDownloadModal'
 import { deleteCampaign, getCampaign } from '../api/campaigns'
 import { subscribeCampaignStats } from '../api/campaignStats'
 import { getMockCampaignDetail } from '../mock/campaignDetails'
@@ -68,6 +70,7 @@ function CampaignDetail() {
   const [liveStats, setLiveStats] = useState(null)
   const [streamStatus, setStreamStatus] = useState('connecting')
   const [streamError, setStreamError] = useState('')
+  const [isReportOpen, setIsReportOpen] = useState(false)
   const mockCampaign = getMockCampaignDetail(campaignId)
   const isMockCampaign = Boolean(mockCampaign)
 
@@ -178,6 +181,13 @@ function CampaignDetail() {
         </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsReportOpen(true)}
+              className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-[#DED9FA] bg-white px-3 text-xs font-semibold text-[#6C48F5] hover:bg-[#F8F7FF]"
+            >
+              <Download size={14} aria-hidden="true" />리포트 다운로드
+            </button>
             {!isMockCampaign && campaign.status !== 'ENDED' && <>
               <Link to={`/campaigns/${campaignId}/edit`} className="inline-flex min-h-8 items-center rounded-lg border border-[#DED9FA] bg-[#F8F7FF] px-3 text-xs font-semibold text-[#6C48F5] hover:bg-[#F0EDFF]">캠페인 수정</Link>
               <button type="button" disabled title="캠페인 발송/상태 변경 API는 Swagger에 없습니다." className="min-h-8 cursor-not-allowed rounded-lg bg-[#2A2C41] px-3 text-xs font-semibold text-white/50">{campaign.status === 'ONGOING' ? '캠페인 일시정지' : '캠페인 재개'}</button>
@@ -228,7 +238,6 @@ function CampaignDetail() {
         <div className="space-y-6">
           <GoalProgressCard targetClicks={campaign.targetClicks} clicks={clicks} />
           <AiSummaryCard key={campaignId} campaignId={campaignId} />
-          <aside className="rounded-[2rem] border border-[#ECEAF5] bg-white p-5 shadow-sm"><h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#858296]">Live Preview</h3><CampaignPreview title={campaign.title} body={campaign.body} imageUrl={campaign.imageUrl} /></aside>
           <section aria-label="타겟 연령 조건별 CTR Lift 분석" className="rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm">
             <h2 className="border-b border-[#F0EFF7] pb-3 text-sm font-bold text-[#2A2C41]">타겟 연령 조건별 CTR Lift 분석</h2>
             <div className="space-y-5 py-4">
@@ -241,8 +250,10 @@ function CampaignDetail() {
               ))}
             </div>
           </section>
+          <aside className="rounded-[2rem] border border-[#ECEAF5] bg-white p-5 shadow-sm"><h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#858296]">Live Preview</h3><CampaignPreview title={campaign.title} body={campaign.body} imageUrl={campaign.imageUrl} /></aside>
         </div>
       </div>
+      {isReportOpen && <ReportDownloadModal campaignId={campaignId} onClose={() => setIsReportOpen(false)} />}
     </div>
   )
 }

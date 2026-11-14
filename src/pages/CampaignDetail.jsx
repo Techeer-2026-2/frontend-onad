@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   CalendarDays,
   ChartNoAxesColumnIncreasing,
+  Download,
   Eye,
   Link2,
   MousePointerClick,
@@ -10,11 +11,18 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import KpiCard from '../components/kpiCard'
 import CampaignPreview from '../components/CampaignPreview'
+import AiSummaryCard from '../components/AiSummaryCard'
+import CampaignBudgetSection from '../components/CampaignBudgetSection'
+import CampaignTrendSection from '../components/CampaignTrendSection'
+import GoalProgressCard from '../components/GoalProgressCard'
+import ReportDownloadModal from '../components/ReportDownloadModal'
 import { deleteCampaign, getCampaign } from '../api/campaigns'
 import { subscribeCampaignStats } from '../api/campaignStats'
+import { getMockCampaignDetail } from '../mock/campaignDetails'
+import { mockAgeCtrLift } from '../mock/campaignAnalytics'
 
 function getAgeGroupChips(values) {
   if (!Array.isArray(values) || values.length === 0) return ['—']
@@ -51,34 +59,42 @@ function getStatus(status) {
 
 function CampaignDetail() {
   const { campaignId } = useParams()
-  return <CampaignDetails key={campaignId} campaignId={campaignId} />
-}
-
-function CampaignDetails({ campaignId }) {
   const navigate = useNavigate()
-  const { state } = useLocation()
   const [campaign, setCampaign] = useState(null)
+  const [loadedCampaignId, setLoadedCampaignId] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
   const [liveStats, setLiveStats] = useState(null)
-  const hasCampaign = campaign !== null
+  const [streamStatus, setStreamStatus] = useState('connecting')
+  const [streamError, setStreamError] = useState('')
+  const [isReportOpen, setIsReportOpen] = useState(false)
+  const mockCampaign = getMockCampaignDetail(campaignId)
+  const isMockCampaign = Boolean(mockCampaign)
 
   useEffect(() => {
+    if (mockCampaign) {
+      setCampaign(mockCampaign)
+      setLoadedCampaignId(campaignId)
+      setErrorMessage('')
+      setIsLoading(false)
+      return undefined
+    }
+
     const controller = new AbortController()
 
     getCampaign(campaignId, { signal: controller.signal })
       .then((response) => {
-        if (controller.signal.aborted) return
-        if (String(response?.campaignId) !== campaignId) {
+        if (!response || typeof response !== 'object') {
           throw new Error('캠페인 상세 응답 형식이 올바르지 않습니다.')
         }
         setCampaign(response)
+        setLoadedCampaignId(campaignId)
       })
       .catch((error) => {
-        if (!controller.signal.aborted) {
+        if (error.name !== 'AbortError') {
           setCampaign(null)
           setErrorMessage(error.message || '캠페인 정보를 불러오지 못했습니다.')
         }
@@ -88,18 +104,24 @@ function CampaignDetails({ campaignId }) {
       })
 
     return () => controller.abort()
-  }, [campaignId, retryCount])
+  }, [campaignId, mockCampaign, retryCount])
 
   useEffect(() => {
-    if (!hasCampaign) return
+    if (isMockCampaign) {
+      setStreamStatus('mock')
+      setStreamError('')
+      return undefined
+    }
 
     const controller = new AbortController()
     subscribeCampaignStats(campaignId, {
       signal: controller.signal,
-      onStats: setLiveStats,
+      onStats: (stats) => setLiveStats({ ...stats, campaignId }),
+      onStatus: (status) => setStreamStatus(status),
+      onError: (message) => setStreamError(message),
     })
     return () => controller.abort()
-  }, [campaignId, hasCampaign])
+  }, [campaignId, isMockCampaign])
 
   async function handleDelete() {
     if (!window.confirm('캠페인을 삭제할까요? 삭제한 캠페인은 복구할 수 없습니다.')) return
@@ -116,7 +138,7 @@ function CampaignDetails({ campaignId }) {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || (!errorMessage && loadedCampaignId !== campaignId)) {
     return <p role="status" className="rounded-xl border border-[#E5E5E5] bg-white px-6 py-16 text-center text-sm text-[#667085]">캠페인 정보를 불러오는 중입니다…</p>
   }
 
@@ -131,8 +153,9 @@ function CampaignDetails({ campaignId }) {
   }
 
   const status = getStatus(campaign.status)
-  const impressions = liveStats?.impressionCount ?? campaign.impressionCount
-  const clicks = liveStats?.clickCount ?? campaign.clickCount
+  const currentLiveStats = liveStats?.campaignId === campaignId ? liveStats : null
+  const impressions = currentLiveStats?.impressionCount ?? campaign.impressionCount
+  const clicks = currentLiveStats?.clickCount ?? campaign.clickCount
   const ctr = Number.isFinite(impressions) && Number.isFinite(clicks)
     ? `${impressions > 0 ? (clicks / impressions * 100).toFixed(1) : '0.0'}%`
     : '—'
@@ -158,10 +181,18 @@ function CampaignDetails({ campaignId }) {
         </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           <div className="flex flex-wrap items-center gap-2">
-            {campaign.status !== 'ENDED' && (
+            <button
+              type="button"
+              onClick={() => setIsReportOpen(true)}
+              className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-[#DED9FA] bg-white px-3 text-xs font-semibold text-[#6C48F5] hover:bg-[#F8F7FF]"
+            >
+              <Download size={14} aria-hidden="true" />리포트 다운로드
+            </button>
+            {!isMockCampaign && campaign.status !== 'ENDED' && <>
               <Link to={`/campaigns/${campaignId}/edit`} className="inline-flex min-h-8 items-center rounded-lg border border-[#DED9FA] bg-[#F8F7FF] px-3 text-xs font-semibold text-[#6C48F5] hover:bg-[#F0EDFF]">캠페인 수정</Link>
-            )}
-            <button type="button" onClick={handleDelete} disabled={isDeleting} className="min-h-8 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60">{isDeleting ? '삭제 중…' : '캠페인 삭제'}</button>
+              <button type="button" disabled title="캠페인 발송/상태 변경 API는 Swagger에 없습니다." className="min-h-8 cursor-not-allowed rounded-lg bg-[#2A2C41] px-3 text-xs font-semibold text-white/50">{campaign.status === 'ONGOING' ? '캠페인 일시정지' : '캠페인 재개'}</button>
+              <button type="button" onClick={handleDelete} disabled={isDeleting} className="min-h-8 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60">{isDeleting ? '삭제 중…' : '캠페인 삭제'}</button>
+            </>}
           </div>
           <span className="hidden h-6 w-px bg-[#E8E6F2] sm:block" />
           <Link to="/campaigns" aria-label="캠페인 목록으로 닫기" title="페이지 닫기" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F7F6FC] text-[#858296] transition-colors hover:bg-[#2A2C41] hover:text-white">
@@ -170,9 +201,9 @@ function CampaignDetails({ campaignId }) {
         </div>
       </section>
 
-      {state?.notice && <p role="status" className="text-sm text-[#667085]">{state.notice}</p>}
       {deleteError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{deleteError}</p>}
 
+      
       <section aria-label="캠페인 주요 성과" className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {metrics.map((metric) => <KpiCard key={metric.label} {...metric} />)}
       </section>
@@ -201,19 +232,28 @@ function CampaignDetails({ campaignId }) {
               </div>
             </div>
           </section>
-          <section aria-label="광고 성과 추이" className="flex flex-col space-y-4 rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="border-b border-[#F0EFF7] pb-3 text-sm font-bold text-[#2A2C41]">광고 성과 추이</h2>
-            <p className="text-sm text-[#667085]">기간별 성과 데이터는 아직 제공되지 않습니다.</p>
-          </section>
+          <CampaignTrendSection campaignId={campaignId} />
+          <CampaignBudgetSection campaignId={campaignId} />
         </div>
         <div className="space-y-6">
-          <aside className="rounded-[2rem] border border-[#ECEAF5] bg-white p-5 shadow-sm"><h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#858296]">Live Preview</h3><CampaignPreview title={campaign.title} body={campaign.body} imageUrl={campaign.imageUrl} /></aside>
+          <GoalProgressCard targetClicks={campaign.targetClicks} clicks={clicks} />
+          <AiSummaryCard key={campaignId} campaignId={campaignId} />
           <section aria-label="타겟 연령 조건별 CTR Lift 분석" className="rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm">
             <h2 className="border-b border-[#F0EFF7] pb-3 text-sm font-bold text-[#2A2C41]">타겟 연령 조건별 CTR Lift 분석</h2>
-            <p className="pt-4 text-sm text-[#667085]">연령별 성과 데이터는 아직 제공되지 않습니다.</p>
+            <div className="space-y-5 py-4">
+              {mockAgeCtrLift.map((item) => (
+                <div key={item.age}>
+                  <div className="mb-2 flex items-center justify-between text-xs"><span className="font-bold text-[#2A2C41]">{item.age}</span><span className="font-bold text-[#6C48F5]">CTR {item.ctr}%</span></div>
+                  <div className="h-2 overflow-hidden rounded-full bg-[#F0EDFF]"><div className="h-full rounded-full bg-linear-to-r from-[#8061F9] to-[#6C48F5]" style={{ width: `${Math.min(item.ctr / 5 * 100, 100)}%` }} /></div>
+                  <p className={`mt-1 text-[11px] font-semibold ${item.lift.startsWith('+') ? 'text-[#16A34A]' : 'text-[#FF6B8B]'}`}>평균 대비 {item.lift}</p>
+                </div>
+              ))}
+            </div>
           </section>
+          <aside className="rounded-[2rem] border border-[#ECEAF5] bg-white p-5 shadow-sm"><h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-[#858296]">Live Preview</h3><CampaignPreview title={campaign.title} body={campaign.body} imageUrl={campaign.imageUrl} /></aside>
         </div>
       </div>
+      {isReportOpen && <ReportDownloadModal campaignId={campaignId} onClose={() => setIsReportOpen(false)} />}
     </div>
   )
 }

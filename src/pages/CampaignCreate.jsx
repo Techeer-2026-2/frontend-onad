@@ -10,6 +10,23 @@ const initialFormData = {
   linkUrl: '',
   startAt: '',
   endAt: '',
+  budget: '',
+  bidPrice: '',
+  targetClicks: '',
+}
+
+const numericFields = ['budget', 'bidPrice', 'targetClicks']
+
+function toDigits(value) {
+  return value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 12)
+}
+
+function formatThousands(digits) {
+  return digits ? Number(digits).toLocaleString('ko-KR') : ''
+}
+
+function toFormNumber(value) {
+  return value > 0 ? String(value) : ''
 }
 
 const inputClassName =
@@ -37,6 +54,20 @@ function validateForm(formData, { deliveryLocked, isEditMode, savedFields }) {
   if (formData.startAt && formData.endAt && formData.endAt <= formData.startAt) {
     errors.endAt = '종료 일시는 시작 일시보다 늦어야 합니다.'
   }
+  const totalBudget = Number(formData.budget)
+  const bidPrice = Number(formData.bidPrice)
+  const targetClicks = Number(formData.targetClicks)
+  if (!isEditMode || totalBudget !== savedFields?.totalBudget) {
+    if (totalBudget < 10_000 || totalBudget > 1_000_000_000) {
+      errors.budget = '캠페인 예산은 10,000원 ~ 10억 원 사이로 입력해 주세요.'
+    }
+  }
+  if (!isEditMode || bidPrice !== savedFields?.bidPrice || totalBudget !== savedFields?.totalBudget) {
+    if (bidPrice < 1 || bidPrice > totalBudget) errors.bidPrice = '입찰가는 1원 이상이고 총 예산 이하여야 합니다.'
+  }
+  if (!isEditMode || targetClicks !== savedFields?.targetClicks) {
+    if (targetClicks < 1 || targetClicks > 10_000_000) errors.targetClicks = '목표 클릭수는 1회 ~ 1,000만 회 사이로 입력해 주세요.'
+  }
   return errors
 }
 
@@ -61,6 +92,9 @@ function campaignFields(formData, ageGroups, genders) {
     linkUrl: formData.linkUrl.trim(),
     startAt: formData.startAt,
     endAt: formData.endAt,
+    totalBudget: Number(formData.budget),
+    bidPrice: Number(formData.bidPrice),
+    targetClicks: Number(formData.targetClicks),
     targetAgeGroups: ageGroups.map(age => ageGroupValues[age]).sort(),
     targetGenders: genders.map(gender => genderValues[gender]).sort(),
   }
@@ -131,6 +165,9 @@ function CampaignForm({ campaignId }) {
           linkUrl: campaign.linkUrl || '',
           startAt: toDateTimeInput(campaign.startAt),
           endAt: toDateTimeInput(campaign.endAt),
+          budget: toFormNumber(campaign.totalBudget),
+          bidPrice: toFormNumber(campaign.bidPrice),
+          targetClicks: toFormNumber(campaign.targetClicks),
         }
         const ages = (campaign.targetAgeGroups ?? [])
           .map(value => Object.keys(ageGroupValues).find(age => ageGroupValues[age] === value)).filter(Boolean)
@@ -161,7 +198,7 @@ function CampaignForm({ campaignId }) {
 
   function handleChange(event) {
     const { name, value } = event.target
-    const nextFormData = { ...formData, [name]: value }
+    const nextFormData = { ...formData, [name]: numericFields.includes(name) ? toDigits(value) : value }
     setFormData(nextFormData)
     setNotice('')
     if (hasSubmitted) setErrors(validateForm(nextFormData, validationOptions))
@@ -224,6 +261,7 @@ function CampaignForm({ campaignId }) {
     if (isSubmitting) return
     setHasSubmitted(true)
     const submittedFormData = { ...formData, ...Object.fromEntries(new FormData(event.currentTarget)) }
+    for (const name of numericFields) submittedFormData[name] = toDigits(submittedFormData[name])
     setFormData(submittedFormData)
     const nextErrors = validateForm(submittedFormData, validationOptions)
     if (imageError) nextErrors.imageFile = imageError
@@ -386,6 +424,57 @@ function CampaignForm({ campaignId }) {
               </div>
             </SectionCard>
           </div>
+
+          {!deliveryLocked && (
+            <SectionCard number="04" title="목표 및 예산 설정">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField id="targetClicks" label="목표 클릭수" required description="캠페인의 목표 총 클릭수입니다." error={errors.targetClicks}>
+                  <div className="relative">
+                    <input
+                      id="targetClicks"
+                      name="targetClicks"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={formatThousands(formData.targetClicks)}
+                      onChange={handleChange}
+                      aria-invalid={Boolean(errors.targetClicks)}
+                      aria-describedby={describedBy('targetClicks', errors.targetClicks)}
+                      className={`${inputClassName} pr-10`}
+                      placeholder="예: 10,000"
+                    />
+                    <span aria-hidden="true" className="pointer-events-none absolute bottom-0 right-4 top-1.5 flex items-center text-sm text-gray-400">회</span>
+                  </div>
+                </FormField>
+
+                <FormField id="budget" label="캠페인 예산" required description="10,000원 ~ 10억 원 사이로 입력해 주세요." error={errors.budget}>
+                  <div className="relative">
+                    <input
+                      id="budget"
+                      name="budget"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={formatThousands(formData.budget)}
+                      onChange={handleChange}
+                      aria-invalid={Boolean(errors.budget)}
+                      aria-describedby={describedBy('budget', errors.budget)}
+                      className={`${inputClassName} pr-10`}
+                      placeholder="예: 5,000,000"
+                    />
+                    <span aria-hidden="true" className="pointer-events-none absolute bottom-0 right-4 top-1.5 flex items-center text-sm text-gray-400">원</span>
+                  </div>
+                </FormField>
+
+                <FormField id="bidPrice" label="노출당 입찰가" required description="노출 1회에 지불할 최대 금액입니다." error={errors.bidPrice}>
+                  <input id="bidPrice" name="bidPrice" type="text" inputMode="numeric"
+                    value={formatThousands(formData.bidPrice)} onChange={handleChange}
+                    aria-invalid={Boolean(errors.bidPrice)} aria-describedby={describedBy('bidPrice', errors.bidPrice)}
+                    className={inputClassName} placeholder="예: 50" />
+                </FormField>
+              </div>
+            </SectionCard>
+          )}
 
           {notice && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{notice}</p>}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

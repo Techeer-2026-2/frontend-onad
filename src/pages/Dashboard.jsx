@@ -87,6 +87,17 @@ function mapDashboardCampaign(campaign, detail) {
   };
 }
 
+// 기간 옵션을 실제 날짜 범위(from, to)로 바꾼다.
+function rangeForPreset(preset) {
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (preset === "yesterday") return { from: new Date(startOfToday.getTime() - DAY), to: startOfToday };
+  if (preset === "7days") return { from: new Date(now.getTime() - 7 * DAY), to: now };
+  if (preset === "30days") return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now };
+  return { from: new Date(now.getTime() - 28 * DAY), to: now };
+}
+
 const presetOptions = [
   ["30days", "이번 달"],
   ["yesterday", "어제"],
@@ -184,7 +195,7 @@ function Dashboard() {
   useEffect(() => {
     if (selectedId == null) return undefined;
     const controller = new AbortController();
-    getCampaignPerformance(selectedId, { signal: controller.signal })
+    getCampaignPerformance(selectedId, { signal: controller.signal, ...rangeForPreset(selectedPreset) })
       .then((data) => {
         if (controller.signal.aborted) return;
         setPerformanceState({ campaignId: selectedId, data, error: "" });
@@ -198,7 +209,7 @@ function Dashboard() {
         });
       });
     return () => controller.abort();
-  }, [selectedId]);
+  }, [selectedId, selectedPreset]);
 
   // 저장된 결과가 지금 선택한 캠페인 것이 아니면 = 아직 불러오는 중
   const isPerformanceLoading =

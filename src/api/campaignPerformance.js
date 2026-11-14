@@ -1,6 +1,8 @@
 import { getMockDailyTrend } from '../mock/campaignDailyTrend'
 import { mockCampaignSummaries } from '../mock/campaignSummaries'
 import { getHomePerformance } from '../mock/homePerformance'
+import { apiRequest } from './client'
+import { getCampaign } from './campaigns'
 import { chartMetrics } from '../utils/chartMetrics'
 
 const MOCK_AI_DELAY_MS = 1200
@@ -68,9 +70,65 @@ export async function getCampaignReport(campaignId, { format, days = 7, signal }
 // 백엔드 통계 API가 아직 없어서 Mock을 Promise로 감싸 반환한다.
 // TODO: API가 생기면 apiRequest로 호출하고, 응답을 아래 형태로 변환해서 반환한다.
 // 반환 형태: { budget, spent, chart: { hour|day|week: { labels, impressions, clicks, spent } } | null } 또는 null
-export async function getCampaignPerformance(campaignId, { signal } = {}) {
+// 목데이터가 있는 캠페인은 목데이터를, 없는 실제 캠페인은 백엔드 시계열 API 를 쓴다.
+// 기간(from, to)을 받아 시간·일 추이를 만들고, 주 단위는 일 단위를 7일씩 묶는다.
+export async function getCampaignPerformance(campaignId, { signal, from, to } = {}) {
   signal?.throwIfAborted()
-  return getHomePerformance(campaignId)
+  const mock = getHomePerformance(campaignId)
+  if (mock) return mock
+
+  const end = to ?? new Date()
+  const begin = from ?? new Date(end.getTime() - 28 * 24 * 60 * 60 * 1000)
+  const [campaign, hourly, daily] = await Promise.all([
+    getCampaign(campaignId, { signal }),
+    fetchTimeseriesRange(campaignId, 'hour', begin, end, { signal }),
+    fetchTimeseriesRange(campaignId, 'day', begin, end, { signal }),
+  ])
+  return {
+    budget: campaign.totalBudget,
+    spent: campaign.spentTotal,
+    chart: {
+      hour: toChart(hourly, hourLabel),
+      day: toChart(daily, dayLabel),
+      week: toWeeklyChart(daily),
+    },
+  }
+}
+
+// 백엔드 시계열 응답(bucketStart, impressionCount, clickCount, spentAmount)을 그래프 형태로 바꾼다.
+function toChart(buckets, labelFn) {
+  return {
+    labels: buckets.map((b) => labelFn(b.bucketStart)),
+    impressions: buckets.map((b) => b.impressionCount),
+    clicks: buckets.map((b) => b.clickCount),
+    spent: buckets.map((b) => b.spentAmount),
+  }
+}
+
+function toWeeklyChart(daily) {
+  const weekly = { labels: [], impressions: [], clicks: [], spent: [] }
+  for (let start = 0; start < daily.length; start += 7) {
+    const chunk = daily.slice(start, start + 7)
+    weekly.labels.push(`${dayLabel(chunk[0].bucketStart)}~${dayLabel(chunk[chunk.length - 1].bucketStart)}`)
+    weekly.impressions.push(chunk.reduce((sum, b) => sum + b.impressionCount, 0))
+    weekly.clicks.push(chunk.reduce((sum, b) => sum + b.clickCount, 0))
+    weekly.spent.push(chunk.reduce((sum, b) => sum + b.spentAmount, 0))
+  }
+  return weekly
+}
+
+const dayLabel = (iso) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`
+const hourLabel = (iso) => `${dayLabel(iso)} ${iso.slice(11, 13)}시`
+
+// LocalDateTime 형식(시간대 없음)으로 자른다. 백엔드는 서버 시각대의 로컬 시각을 기대한다.
+function toLocalIso(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`
+}
+
+function fetchTimeseriesRange(campaignId, granularity, from, to, { signal } = {}) {
+  const query = new URLSearchParams({ from: toLocalIso(from), to: toLocalIso(to), granularity })
+  return apiRequest(`/api/v1/campaigns/${encodeURIComponent(campaignId)}/stats/timeseries?${query}`, { signal })
 }
 
 // 캠페인 예산 소진 현황: 현재값 + 최근 days일 누적 추이

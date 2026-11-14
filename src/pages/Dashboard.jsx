@@ -14,15 +14,8 @@ import CampaignSelect from "../components/CampaignSelect";
 import CampaignTable from "../components/CampaignTable";
 import KpiCard from "../components/kpiCard";
 import MetricTrendChart from "../components/MetricTrendChart";
-import { getCampaign, getCampaigns } from "../api/campaigns";
-import { mockCampaigns } from "../mock/campaigns";
-import { mockDashboardDatePresets } from "../mock/dashboard";
-import { getCampaignPerformance } from "../api/campaignPerformance";
-import {
-  chartMetrics,
-  formatWon,
-  getMetricValues,
-} from "../utils/chartMetrics";
+import { getCampaigns } from "../api/campaigns";
+import { getCampaignTimeseries, toTrendSeries } from "../api/campaignPerformance";
 
 function formatTargetAudience(ageGroups, genders) {
   const ages = Array.isArray(ageGroups)
@@ -62,11 +55,11 @@ function toNonnegativeNumber(value) {
     : null;
 }
 
-function mapDashboardCampaign(campaign, detail) {
-  const sent = toNonnegativeNumber(detail.impressionCount);
-  const clicks = toNonnegativeNumber(detail.clickCount);
+function mapDashboardCampaign(campaign) {
+  const sent = toNonnegativeNumber(campaign.impressionCount);
+  const clicks = toNonnegativeNumber(campaign.clickCount);
   if (sent === null || clicks === null)
-    throw new Error("캠페인 상세 통계 응답이 올바르지 않습니다.");
+    throw new Error("캠페인 목록 통계 응답이 올바르지 않습니다.");
   return {
     ...campaign,
     id: campaign.campaignId,
@@ -87,27 +80,54 @@ function mapDashboardCampaign(campaign, detail) {
   };
 }
 
-// 기간 옵션을 실제 날짜 범위(from, to)로 바꾼다.
-function rangeForPreset(preset) {
-  const DAY = 24 * 60 * 60 * 1000;
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (preset === "yesterday") return { from: new Date(startOfToday.getTime() - DAY), to: startOfToday };
-  if (preset === "7days") return { from: new Date(now.getTime() - 7 * DAY), to: now };
-  if (preset === "30days") return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now };
-  return { from: new Date(now.getTime() - 28 * DAY), to: now };
-}
-
 const presetOptions = [
-  ["30days", "이번 달"],
+  ["month", "이번 달"],
   ["yesterday", "어제"],
   ["7days", "최근 7일"],
   ["custom", "직접 설정"],
 ];
 
-function formatDate(date) {
-  return date.replaceAll("-", ".");
+function shiftDay(day, count) {
+  const date = new Date(day + "T00:00:00Z");
+  date.setUTCDate(date.getUTCDate() + count);
+  return date.toISOString().slice(0, 10);
 }
+
+function getPresetDates(preset) {
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date());
+  if (preset === "month") return { start: today.slice(0, 7) + "-01", end: today };
+  if (preset === "yesterday") {
+    const yesterday = shiftDay(today, -1);
+    return { start: yesterday, end: yesterday };
+  }
+  return { start: shiftDay(today, -6), end: today };
+}
+
+function formatWon(value) {
+  return `₩${Math.round(value).toLocaleString("ko-KR")}`;
+}
+
+// 서버가 계산한 각 지표의 단위와 표시 형식
+const chartMetrics = {
+  ctr: {
+    label: "CTR",
+    description: "클릭률",
+    unit: "%",
+    format: (value) => `${value.toFixed(2)}%`,
+  },
+  cpc: {
+    label: "CPC",
+    description: "클릭당 비용",
+    unit: "원",
+    format: formatWon,
+  },
+  cpm: {
+    label: "CPM",
+    description: "1,000회 노출당 비용",
+    unit: "원",
+    format: formatWon,
+  },
+};
 
 function Dashboard() {
   const [campaigns, setCampaigns] = useState([]);
@@ -115,13 +135,8 @@ function Dashboard() {
   const [errorMessage, setErrorMessage] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const [selectedPreset, setSelectedPreset] = useState("7days");
-  const [dateLabel, setDateLabel] = useState(
-    mockDashboardDatePresets["7days"].label,
-  );
-  const [dateInputs, setDateInputs] = useState({
-    start: "2026-09-01",
-    end: "2026-09-26",
-  });
+  const [range, setRange] = useState(() => getPresetDates("7days"));
+  const [dateInputs, setDateInputs] = useState(range);
   const [showCustomDates, setShowCustomDates] = useState(false);
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
   const [dateError, setDateError] = useState("");
@@ -130,7 +145,7 @@ function Dashboard() {
   const [chartMetric, setChartMetric] = useState("ctr");
   // 어떤 캠페인의 결과인지 id와 함께 저장한다
   const [performanceState, setPerformanceState] = useState({
-    campaignId: null,
+    queryKey: null,
     data: null,
     error: "",
   });
@@ -138,30 +153,11 @@ function Dashboard() {
   useEffect(() => {
     const controller = new AbortController();
     getCampaigns({ signal: controller.signal })
-      .then(async (response) => {
+      .then((response) => {
         if (!Array.isArray(response))
           throw new Error("캠페인 목록 응답 형식이 올바르지 않습니다.");
-        // 각 캠페인의 노출/클릭은 목록이 아닌 상세 응답에서 제공됩니다.
-        const details = [];
-        for (let index = 0; index < response.length; index += 5) {
-          const batch = response.slice(index, index + 5);
-          const results = await Promise.all(
-            batch.map((campaign) => {
-              if (campaign.campaignId == null)
-                throw new Error("캠페인 ID가 누락되었습니다.");
-              return getCampaign(campaign.campaignId, {
-                signal: controller.signal,
-              });
-            }),
-          );
-          details.push(...results);
-        }
         if (controller.signal.aborted) return;
-        setCampaigns(
-          response.map((campaign, index) =>
-            mapDashboardCampaign(campaign, details[index]),
-          ),
-        );
+        setCampaigns(response.map(mapDashboardCampaign));
         setErrorMessage("");
       })
       .catch((error) => {
@@ -177,7 +173,7 @@ function Dashboard() {
     return () => controller.abort();
   }, [retryCount]);
 
-  const sourceCampaigns = campaigns.length > 0 ? campaigns : mockCampaigns;
+  const sourceCampaigns = campaigns;
   const isOngoing = (campaign) =>
     campaign.status === "ONGOING" || campaign.status === "active";
   // 기본 선택: 진행 중인 첫 캠페인 → 없으면 첫 캠페인
@@ -191,72 +187,69 @@ function Dashboard() {
   }));
 
   const selectedId = selectedCampaign?.id;
+  const from = range.start + "T00:00:00";
+  const to = shiftDay(range.end, 1) + "T00:00:00";
+  const queryKey = JSON.stringify([selectedId, from, to, granularity]);
+  const [chartRetry, setChartRetry] = useState(0);
+  const hourRangeTooLong = granularity === "hour" && shiftDay(range.start, 30) < range.end;
+  const canLoadTrend = selectedId != null && !hourRangeTooLong;
 
   useEffect(() => {
-    if (selectedId == null) return undefined;
+    if (!canLoadTrend) return undefined;
     const controller = new AbortController();
-    getCampaignPerformance(selectedId, { signal: controller.signal, ...rangeForPreset(selectedPreset) })
-      .then((data) => {
-        if (controller.signal.aborted) return;
-        setPerformanceState({ campaignId: selectedId, data, error: "" });
+    getCampaignTimeseries(selectedId, { from, to, granularity, signal: controller.signal })
+      .then((buckets) => {
+        const data = toTrendSeries(buckets, granularity);
+        if (!controller.signal.aborted) setPerformanceState({ queryKey, chartRetry, data, error: "" });
       })
       .catch((error) => {
-        if (controller.signal.aborted || error.name === "AbortError") return;
-        setPerformanceState({
-          campaignId: selectedId,
-          data: null,
-          error: "성과 데이터를 불러오지 못했습니다.",
-        });
+        if (controller.signal.aborted) return;
+        const message = error.status === 404 ? "성과 추이 API를 사용할 수 없습니다." : error.message;
+        setPerformanceState({ queryKey, chartRetry, data: null, error: message });
       });
     return () => controller.abort();
-  }, [selectedId, selectedPreset]);
+  }, [canLoadTrend, selectedId, from, to, granularity, queryKey, chartRetry]);
 
-  // 저장된 결과가 지금 선택한 캠페인 것이 아니면 = 아직 불러오는 중
-  const isPerformanceLoading =
-    selectedId != null && performanceState.campaignId !== selectedId;
-  const performance = isPerformanceLoading ? null : performanceState.data;
-
-  const impressions = selectedCampaign?.sent ?? 0;
-  const clicks = selectedCampaign?.clicks ?? 0;
-  const spentRate =
-    performance && performance.budget > 0
-      ? (performance.spent / performance.budget) * 100
-      : 0;
-  const chartSeries = performance?.chart?.[granularity] ?? null;
+  const isPerformanceLoading = canLoadTrend &&
+    (performanceState.queryKey !== queryKey || performanceState.chartRetry !== chartRetry);
+  const chartSeries = canLoadTrend && !isPerformanceLoading ? performanceState.data : null;
   const metric = chartMetrics[chartMetric];
-  const metricValues = chartSeries
-    ? getMetricValues(chartSeries, metric)
-    : [];
-
+  const metricValues = chartSeries?.[chartMetric] ?? [];
+  const hasMetricData = metricValues.length > 0 && metricValues.every(Number.isFinite);
+  const impressions = selectedCampaign?.sent;
+  const clicks = selectedCampaign?.clicks;
+  const budget = toNonnegativeNumber(selectedCampaign?.totalBudget);
+  const remaining = toNonnegativeNumber(selectedCampaign?.remainingBudget);
+  const spent = toNonnegativeNumber(selectedCampaign?.spentTotal);
+  const spentRate = budget > 0 && spent !== null ? (spent / budget) * 100 : null;
   const activeCampaignCount = campaigns.filter(isOngoing).length;
-  const recentCampaigns =
-    campaigns.length > 0 ? campaigns.slice(0, 10) : mockCampaigns;
+  const recentCampaigns = campaigns.slice(0, 10);
   const metrics = [
     {
       label: "누적 노출 수",
-      value: impressions.toLocaleString("ko-KR"),
+      value: impressions?.toLocaleString("ko-KR") ?? "—",
       icon: Eye,
       tone: "lavender",
     },
     {
       label: "누적 클릭수",
-      value: clicks.toLocaleString("ko-KR"),
+      value: clicks?.toLocaleString("ko-KR") ?? "—",
       icon: MousePointerClick,
       tone: "dark",
     },
-    performance
+    remaining !== null
       ? {
           label: "남은 예산",
-          value: formatWon(performance.budget - performance.spent),
-          caption: `예산 소진율 ${Math.round(spentRate)}%`,
-          progress: spentRate,
+          value: formatWon(remaining),
+          caption: spentRate === null ? undefined : `예산 소진율 ${Math.round(spentRate)}%`,
+          progress: spentRate ?? undefined,
           icon: Coins,
           tone: "pink",
         }
       : {
           label: "남은 예산",
           value: "—",
-          caption: isPerformanceLoading ? "불러오는 중" : "예산 정보 없음",
+          caption: "예산 정보 없음",
           icon: Coins,
           tone: "pink",
         },
@@ -271,11 +264,9 @@ function Dashboard() {
 
   const applyPreset = (preset) => {
     setSelectedPreset(preset);
-    setDateLabel(mockDashboardDatePresets[preset].label);
-    setDateInputs({
-      start: mockDashboardDatePresets[preset].start,
-      end: mockDashboardDatePresets[preset].end,
-    });
+    const dates = getPresetDates(preset);
+    setRange(dates);
+    setDateInputs(dates);
     setDateError("");
   };
 
@@ -291,7 +282,7 @@ function Dashboard() {
     }
 
     setSelectedPreset("custom");
-    setDateLabel(`${formatDate(start)} ~ ${formatDate(end)} (샘플 데이터)`);
+    setRange({ start, end });
     setDateError("");
     setShowCustomDates(false);
   };
@@ -351,7 +342,7 @@ function Dashboard() {
                     onClick={() => {
                       setIsPresetMenuOpen(false);
                       if (value === "custom") {
-                        setSelectedPreset("custom");
+                        setDateInputs(range);
                         setShowCustomDates(true);
                         setDateError("");
                         return;
@@ -359,7 +350,7 @@ function Dashboard() {
                       applyPreset(value);
                       setShowCustomDates(false);
                     }}
-                    className={`flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${selectedPreset === value ? "bg-[#F0ECFF] text-onad-purplele" : "text-[#4B485C] hover:bg-[#F7F5FF] hover:text-onad-purple"}`}
+                    className={`flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${selectedPreset === value ? "bg-[#F0ECFF] text-onad-purple" : "text-[#4B485C] hover:bg-[#F7F5FF] hover:text-onad-purple"}`}
                   >
                     {label}
                   </button>
@@ -495,7 +486,7 @@ function Dashboard() {
                 캠페인 성과 추이
               </h2>
               <p className="mt-1 text-xs text-[#858296]">
-                {selectedCampaign?.name} · 샘플 데이터
+                {selectedCampaign ? `${selectedCampaign.name} · ${range.start} ~ ${range.end}` : "선택된 캠페인 없음"}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -507,7 +498,6 @@ function Dashboard() {
                 {[
                   ["hour", "시간"],
                   ["day", "일"],
-                  ["week", "주"],
                 ].map(([value, label]) => (
                   <button
                     key={value}
@@ -551,8 +541,9 @@ function Dashboard() {
             </p>
           </div>
           <div id="trend-chart-panel" role="tabpanel">
-            {chartSeries ? (
+            {hasMetricData ? (
               <MetricTrendChart
+                key={queryKey + chartMetric}
                 labels={chartSeries.labels}
                 values={metricValues}
                 metricLabel={metric.label}
@@ -565,11 +556,19 @@ function Dashboard() {
               >
                 {isPerformanceLoading
                   ? "성과 데이터를 불러오는 중입니다…"
-                  : performanceState.error ||
-                    "선택한 캠페인의 성과 데이터가 없습니다."}
+                  : hourRangeTooLong
+                    ? "시간 단위 조회는 최대 31일까지 가능합니다."
+                    : canLoadTrend && performanceState.error
+                      ? performanceState.error
+                      : chartSeries?.labels.length
+                        ? "이 지표는 현재 서버에서 제공하지 않습니다."
+                        : "선택한 캠페인의 성과 데이터가 없습니다."}
               </p>
             )}
           </div>
+          {canLoadTrend && !isPerformanceLoading && performanceState.error && (
+            <button type="button" className="text-sm font-semibold text-onad-purple" onClick={() => setChartRetry((count) => count + 1)}>다시 시도</button>
+          )}
         </section>
 
         <CampaignTable
@@ -584,7 +583,7 @@ function Dashboard() {
             setRetryCount((n) => n + 1);
           }}
           dashboard
-          sortable
+          sortableCtr
         />
       </div>
     </div>

@@ -2,15 +2,25 @@ import { useState } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-// 기본 → 내림차순 → 오름차순 → 기본
-const nextCtrSort = { null: 'desc', desc: 'asc', asc: null }
+// 정렬 가능한 열과 정렬 값. 운영 기간은 시작 시각 기준으로 정렬한다.
+const sortValueOf = {
+  sent: (campaign) => campaign.sent,
+  clicks: (campaign) => campaign.clicks,
+  ctr: (campaign) => campaign.ctr,
+  period: (campaign) => (campaign.startAt ? Date.parse(campaign.startAt) : NaN),
+}
 
-// CTR 값이 없는 캠페인은 방향과 상관없이 항상 맨 아래로 보낸다
-function compareCtr(a, b, direction) {
-  const aHasCtr = Number.isFinite(a.ctr)
-  const bHasCtr = Number.isFinite(b.ctr)
-  if (!aHasCtr || !bHasCtr) return Number(bHasCtr) - Number(aHasCtr)
-  return direction === 'asc' ? a.ctr - b.ctr : b.ctr - a.ctr
+// 기본 → 내림차순 → 오름차순 → 기본 (열마다 같은 순서)
+const nextDirection = { null: 'desc', desc: 'asc', asc: null }
+
+// 값이 없는 캠페인은 방향과 상관없이 항상 맨 아래로 보낸다
+function compareBy(key, a, b, direction) {
+  const aValue = sortValueOf[key](a)
+  const bValue = sortValueOf[key](b)
+  const aHasValue = Number.isFinite(aValue)
+  const bHasValue = Number.isFinite(bValue)
+  if (!aHasValue || !bHasValue) return Number(bHasValue) - Number(aHasValue)
+  return direction === 'asc' ? aValue - bValue : bValue - aValue
 }
 
 function CampaignTable({
@@ -27,12 +37,45 @@ function CampaignTable({
   dashboard = false,
   management = false,
   hideHeader = false,
-  sortableCtr = false,
+  sortable = false,
 }) {
-  const [ctrSort, setCtrSort] = useState(null) // null(기본) | 'desc' | 'asc'
-  const displayedCampaigns = sortableCtr && ctrSort
-    ? [...campaigns].sort((a, b) => compareCtr(a, b, ctrSort))
+  const [sort, setSort] = useState({ key: null, direction: null }) // direction: null(기본) | 'desc' | 'asc'
+  const displayedCampaigns = sortable && sort.direction
+    ? [...campaigns].sort((a, b) => compareBy(sort.key, a, b, sort.direction))
     : campaigns
+
+  function toggleSort(key) {
+    setSort((current) => {
+      const base = current.key === key ? current.direction : null
+      return { key, direction: nextDirection[base] }
+    })
+  }
+
+  // 정렬 가능한 열이면 버튼과 정렬 상태를, 아니면 평범한 제목 칸을 그린다
+  function renderHeader(key, label, className) {
+    if (!sortable) {
+      return <th scope="col" className={className}>{label}</th>
+    }
+    const active = sort.key === key ? sort.direction : null
+    return (
+      <th
+        scope="col"
+        aria-sort={active === 'desc' ? 'descending' : active === 'asc' ? 'ascending' : 'none'}
+        className={className}
+      >
+        <button
+          type="button"
+          onClick={() => toggleSort(key)}
+          className={`inline-flex items-center gap-1 uppercase transition hover:text-onad-purple ${active ? 'text-onad-purple' : ''}`}
+        >
+          {label}
+          {active === 'desc' ? <ArrowDown size={14} aria-hidden="true" />
+            : active === 'asc' ? <ArrowUp size={14} aria-hidden="true" />
+              : <ArrowUpDown size={14} aria-hidden="true" />}
+        </button>
+      </th>
+    )
+  }
 
   return (
     <section className={`overflow-hidden rounded-[2rem] border border-[#ECEAF5] bg-white transition-shadow duration-300 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] ${compact ? 'flex h-full flex-col' : ''} ${management ? 'flex flex-col' : ''}`}>
@@ -79,29 +122,10 @@ function CampaignTable({
               <th scope="col" className={`${compact ? 'px-2 py-3' : 'px-4 py-3'}`}>캠페인명 {compact && '(CAMPAIGN)'}</th>
               <th scope="col" className={`${compact ? 'px-2 py-3 text-center' : 'px-4 py-3'}`}>상태 {compact && '(STATUS)'}</th>
               <th scope="col" className={compact ? 'hidden' : 'px-4 py-3'}>타겟 조건</th>
-              <th scope="col" className={`${compact ? 'px-2 py-3 text-right' : 'px-4 py-3 text-right'}`}>{compact ? '노출수 (IMPR.)' : '발송(노출) 수'}</th>
-              <th scope="col" className={compact ? 'hidden' : 'px-4 py-3 text-right'}>클릭 수</th>
-              {sortableCtr ? (
-                <th
-                  scope="col"
-                  aria-sort={ctrSort === 'desc' ? 'descending' : ctrSort === 'asc' ? 'ascending' : 'none'}
-                  className={compact ? 'hidden' : 'px-4 py-3 text-right'}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setCtrSort((current) => nextCtrSort[current])}
-                    className={`inline-flex items-center gap-1 uppercase transition hover:text-onad-purple ${ctrSort ? 'text-onad-purple' : ''}`}
-                  >
-                    CTR
-                    {ctrSort === 'desc' ? <ArrowDown size={14} aria-hidden="true" />
-                      : ctrSort === 'asc' ? <ArrowUp size={14} aria-hidden="true" />
-                        : <ArrowUpDown size={14} aria-hidden="true" />}
-                  </button>
-                </th>
-              ) : (
-                <th scope="col" className={compact ? 'hidden' : 'px-4 py-3 text-right'}>CTR</th>
-              )}
-              <th scope="col" className={compact ? 'hidden' : 'px-4 py-3'}>운영 기간</th>
+              {renderHeader('sent', compact ? '노출수 (IMPR.)' : '발송(노출) 수', `${compact ? 'px-2 py-3 text-right' : 'px-4 py-3 text-right'}`)}
+              {renderHeader('clicks', '클릭 수', compact ? 'hidden' : 'px-4 py-3 text-right')}
+              {renderHeader('ctr', 'CTR', compact ? 'hidden' : 'px-4 py-3 text-right')}
+              {renderHeader('period', '운영 기간', compact ? 'hidden' : 'px-4 py-3')}
               <th scope="col" className={compact ? 'hidden' : 'px-4 py-3 text-center'}>관리</th>
             </tr>}
           </thead>

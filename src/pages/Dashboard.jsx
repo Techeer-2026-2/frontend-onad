@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react'
 import {
-  CalendarDays,
-  ChartLine,
-  ChevronDown,
   Coins,
   Eye,
   Megaphone,
@@ -11,10 +8,11 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import CampaignSelect from '../components/CampaignSelect'
+import CampaignPerformanceTrend from '../components/CampaignPerformanceTrend'
 import CampaignTable from '../components/CampaignTable'
 import KpiCard from '../components/kpiCard'
 import { getCampaigns } from '../api/campaigns'
-import { mockDashboardChartSeries, mockDashboardDatePresets } from '../mock/dashboard'
+import { mockDashboardChartSeries } from '../mock/dashboard'
 
 function remainingBudgetMetric(campaign) {
   const budget = toNonnegativeNumber(campaign?.budget)
@@ -78,13 +76,6 @@ function mapDashboardCampaign(campaign) {
     ctr: sent > 0 ? clicks / sent * 100 : 0,
   }
 }
-
-const presetOptions = [
-  ['30days', '이번 달'],
-  ['yesterday', '어제'],
-  ['7days', '최근 7일'],
-  ['custom', '직접 설정'],
-]
 
 export function TrendChart({ granularity, series = mockDashboardChartSeries[granularity] }) {
   const { labels, impressions, clicks } = series
@@ -183,12 +174,6 @@ function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [retryCount, setRetryCount] = useState(0)
-  const [selectedPreset, setSelectedPreset] = useState('7days')
-  const [dateInputs, setDateInputs] = useState({ start: '2026-09-01', end: '2026-09-26' })
-  const [showCustomDates, setShowCustomDates] = useState(false)
-  const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false)
-  const [dateError, setDateError] = useState('')
-  const [granularity, setGranularity] = useState('day')
   const [selectedCampaignId, setSelectedCampaignId] = useState(null)
 
   useEffect(() => {
@@ -227,28 +212,6 @@ function Dashboard() {
   ]
 
 
-  const applyPreset = (preset) => {
-    setSelectedPreset(preset)
-    setDateInputs({ start: mockDashboardDatePresets[preset].start, end: mockDashboardDatePresets[preset].end })
-    setDateError('')
-  }
-
-  const applyCustomDates = () => {
-    const { start, end } = dateInputs
-    if (!start || !end) {
-      setDateError('시작일과 종료일을 모두 선택해 주세요.')
-      return
-    }
-    if (start > end) {
-      setDateError('종료일은 시작일과 같거나 이후여야 합니다.')
-      return
-    }
-
-    setSelectedPreset('custom')
-    setDateError('')
-    setShowCustomDates(false)
-  }
-
   return (
     <div className="mx-auto max-w-7xl">
       <section className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
@@ -260,90 +223,11 @@ function Dashboard() {
           {selectedCampaign && (
             <CampaignSelect options={campaignOptions} value={selectedCampaign.id} onChange={setSelectedCampaignId} />
           )}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsPresetMenuOpen((open) => !open)}
-              aria-haspopup="menu"
-              aria-expanded={isPresetMenuOpen}
-              className="inline-flex min-h-11 min-w-44 items-center justify-between gap-5 rounded-xl border border-[#E4E1F0] bg-white px-4 text-sm font-semibold text-onad-dark shadow-sm transition hover:border-[#CFC4FF] hover:bg-[#FCFBFF] focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-onad-purple"
-            >
-              <span className="flex items-center gap-2">
-                <CalendarDays size={16} className="text-[#7C6DB9]" aria-hidden="true" />
-                {presetOptions.find(([value]) => value === selectedPreset)?.[1] || '기간 설정'}
-              </span>
-              <ChevronDown size={16} className={`text-[#7C6DB9] transition-transform ${isPresetMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
-            </button>
-            {isPresetMenuOpen && (
-              <div role="menu" aria-label="분석 기간 선택" className="absolute right-0 z-20 mt-2 w-full min-w-52 overflow-hidden rounded-xl border border-[#E4E1F0] bg-white p-1.5 shadow-xl shadow-[#342B68]/10">
-                {presetOptions.map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setIsPresetMenuOpen(false)
-                      if (value === 'custom') {
-                        setSelectedPreset('custom')
-                        setShowCustomDates(true)
-                        setDateError('')
-                        return
-                      }
-                      applyPreset(value)
-                      setShowCustomDates(false)
-                    }}
-                    className={`flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-medium transition ${selectedPreset === value ? 'bg-[#F0ECFF] text-onad-purplele' : 'text-[#4B485C] hover:bg-[#F7F5FF] hover:text-onad-purple'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
           <Link to="/campaigns/new" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-onad-purple px-5 text-sm font-bold text-white shadow-lg shadow-onad-purple/25 transition hover:bg-[#5839DB] focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-onad-purple">
             <Plus size={17} aria-hidden="true" /> 새 캠페인 등록
           </Link>
         </div>
       </section>
-
-      {showCustomDates && (
-        <section className="mb-10 space-y-4 rounded-2xl border border-[#DED9FA] bg-white p-5 shadow-lg shadow-onad-purple/5" aria-labelledby="custom-date-title">
-          <h2 id="custom-date-title" className="text-sm font-bold text-onad-dark">
-            분석 시작일 및 종료일 지정
-          </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="text-xs font-medium text-[#5D5A6E]" htmlFor="start-date-input">
-              시작일
-              <input
-                id="start-date-input"
-                type="date"
-                value={dateInputs.start}
-                onChange={(event) => setDateInputs((current) => ({ ...current, start: event.target.value }))}
-                className="mt-1 w-full rounded-lg border border-[#E8E6F2] p-2.5 text-xs outline-none focus:border-onad-purple focus:ring-2 focus:ring-onad-purple/1010"
-              />
-            </label>
-            <label className="text-xs font-medium text-[#5D5A6E]" htmlFor="end-date-input">
-              종료일
-              <input
-                id="end-date-input"
-                type="date"
-                value={dateInputs.end}
-                onChange={(event) => setDateInputs((current) => ({ ...current, end: event.target.value }))}
-                className="mt-1 w-full rounded-lg border border-[#E8E6F2] p-2.5 text-xs outline-none focus:border-onad-purple focus:ring-2 focus:ring-onad-purple/1010"
-              />
-            </label>
-          </div>
-          {dateError && <p className="text-xs text-red-600" role="alert">{dateError}</p>}
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setShowCustomDates(false)} className="rounded-lg border border-[#E8E6F2] px-3 py-1.5 text-xs text-[#5D5A6E] hover:bg-[#F7F7FB]">
-              취소
-            </button>
-            <button type="button" onClick={applyCustomDates} className="rounded-lg bg-onad-purple px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#5839DB]">
-              기간 적용
-            </button>
-          </div>
-        </section>
-      )}
 
       <section className="mb-10" aria-label="주요 광고 지표">
         {isLoading ? (
@@ -363,44 +247,7 @@ function Dashboard() {
       </section>
 
       <div className="grid grid-cols-1 gap-8">
-      <section className="space-y-4 rounded-4xl border border-[#ECEAF5] bg-white p-5 transition-shadow duration-300 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] md:p-6" aria-labelledby="trend-title">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div>
-            <h2 id="trend-title" className="text-xl font-extrabold tracking-tight text-onad-dark">
-              캠페인 성과 추이
-            </h2>
-            {selectedCampaign && <p className="mt-1 text-xs text-[#858296]">{selectedCampaign.name}</p>}
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="inline-flex self-start rounded-lg border border-[#E8E6F2] bg-[#F7F7FB] p-0.5 text-xs font-medium sm:self-auto" role="group" aria-label="차트 시간 단위">
-              {[
-                ['hour', '시간'],
-                ['day', '일'],
-                ['week', '주'],
-              ].map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setGranularity(value)}
-                  aria-pressed={granularity === value}
-                  className={`rounded-md px-3 py-1 ${granularity === value ? 'bg-white font-bold text-onad-purple shadow-sm' : 'text-[#6F6C80] hover:text-onad-dark'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F7F7FB] text-[#A3A0AF]">
-              <ChartLine size={19} aria-hidden="true" />
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 text-[11px] font-medium text-[#6F6C80]" aria-hidden="true">
-          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-onad-purple" />노출 수</span>
-          <span className="flex items-center gap-2"><span className="h-0.5 w-4 rounded-full bg-[#2A2C41]" />클릭 수</span>
-        </div>
-        <p className="flex h-96 items-center justify-center rounded-2xl bg-[#F7F7FB] text-sm text-[#858296]">기간별 성과 데이터는 연동 준비 중입니다.</p>
-      </section>
+        {selectedCampaign && <CampaignPerformanceTrend campaign={selectedCampaign} />}
 
       <CampaignTable
         campaigns={recentCampaigns}

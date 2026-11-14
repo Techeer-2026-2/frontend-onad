@@ -4,10 +4,9 @@ const RETRY_DELAY_MS = 3000
 
 function parseStats(payload) {
   if (!payload || typeof payload !== 'object') return null
-  // Swagger defines the event name and JSON transport but not the inner schema.
-  // The campaign detail response currently uses these matching count fields.
   const stats = payload.data && typeof payload.data === 'object' ? payload.data : payload
-  const { impressionCount, clickCount } = stats
+  const impressionCount = stats.sentCount ?? stats.impressionCount
+  const { clickCount } = stats
   if (!Number.isFinite(impressionCount) || impressionCount < 0 ||
       !Number.isFinite(clickCount) || clickCount < 0) return null
   return { impressionCount, clickCount }
@@ -29,7 +28,7 @@ function waitForRetry(signal) {
 }
 
 /** Subscribe to a campaign's SSE stats stream; returns when aborted. */
-export async function subscribeCampaignStats(campaignId, { signal, onStats, onStatus, onError }) {
+export async function subscribeCampaignStats(campaignId, { signal, onStats, onStatus = () => {}, onError = () => {} }) {
   const path = `/api/v1/campaigns/${encodeURIComponent(campaignId)}/stats/stream`
   while (!signal.aborted) {
     try {

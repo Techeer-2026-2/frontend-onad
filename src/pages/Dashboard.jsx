@@ -573,7 +573,7 @@ function Dashboard() {
             setRetryCount((n) => n + 1);
           }}
           dashboard
-          sortableCtr
+          sortable
         />
       </div>
     </div>

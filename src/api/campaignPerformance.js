@@ -1,4 +1,5 @@
 import { ApiError, apiRequest, authenticatedFetch } from './client'
+import { getCampaign } from "./campaigns";
 
 function campaignPath(campaignId) {
   return `/api/v1/campaigns/${encodeURIComponent(campaignId)}`
@@ -54,4 +55,43 @@ export async function downloadCampaignReport(campaignId, format, { signal } = {}
   link.click()
   link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+// ---- 아래는 develop 의 보고서·예산·추이 컴포넌트가 쓰는 함수다. 같은 백엔드 API 를 #61 함수로 감싼다. ----
+
+// 예산 소진 현황: 캠페인 상세의 총 예산·집행액을 쓴다.
+export async function getCampaignBudget(campaignId, { signal } = {}) {
+  const campaign = await getCampaign(campaignId, { signal })
+  return {
+    budget: campaign.totalBudget,
+    spent: campaign.spentTotal,
+    history: null,
+  }
+}
+
+// 일별 추이 (최근 days 일). 집행액 누적도 함께 만든다.
+export async function getCampaignDailyTrend(campaignId, { days = 7, signal } = {}) {
+  const to = new Date()
+  const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000)
+  const buckets = await getCampaignTimeseries(campaignId, { from: toLocalIso(from), to: toLocalIso(to), granularity: 'day', signal })
+  let running = 0
+  const cumulativeSpent = buckets.map((b) => (running += b.spentAmount))
+  return {
+    labels: buckets.map(({ bucketStart }) => bucketStart.slice(5, 10).replace('-', '/')),
+    impressions: buckets.map((b) => b.impressionCount),
+    clicks: buckets.map((b) => b.clickCount),
+    spent: buckets.map((b) => b.spentAmount),
+    cumulativeSpent,
+  }
+}
+
+// 리포트: downloadCampaignReport 가 파일을 직접 내려받으므로 blob 없이 결과만 돌려준다.
+export async function getCampaignReport(campaignId, { format, signal } = {}) {
+  await downloadCampaignReport(campaignId, format, { signal })
+  return { blob: null, filename: `campaign-${campaignId}-report.${format}`, isSample: false }
+}
+
+function toLocalIso(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`
 }

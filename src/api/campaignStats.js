@@ -28,7 +28,7 @@ function waitForRetry(signal) {
 }
 
 /** Subscribe to a campaign's SSE stats stream; returns when aborted. */
-export async function subscribeCampaignStats(campaignId, { signal, onStats, onStatus, onError }) {
+export async function subscribeCampaignStats(campaignId, { signal, onStats, onStatus = () => {}, onError = () => {} }) {
   const path = `/api/v1/campaigns/${encodeURIComponent(campaignId)}/stats/stream`
   while (!signal.aborted) {
     try {

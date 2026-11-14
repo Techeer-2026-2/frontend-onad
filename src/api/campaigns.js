@@ -16,7 +16,7 @@ export function getCampaign(campaignId, { signal } = {}) {
 
 function createCampaignFormData(payload, image) {
   const formData = new FormData()
-  formData.append('request', new Blob([JSON.stringify(payload)], { type: 'application/json' }))
+  if (payload) formData.append('request', new Blob([JSON.stringify(payload)], { type: 'application/json' }))
   if (image) formData.append('image', image)
   return formData
 }

@@ -358,7 +358,7 @@ function CampaignForm({ campaignId }) {
               <FormField id="body" label="광고 본문 문구" required error={errors.body}>
                 <textarea id="body" name="body" rows={3} value={formData.body} onChange={handleChange} aria-invalid={Boolean(errors.body)} aria-describedby={describedBy('body', errors.body)} className={`${inputClassName} resize-y`} placeholder="캠페인 메시지를 입력해 주세요." />
               </FormField>
-              <FormField id="imageFile" label="배너 이미지 파일" required={!isEditMode} description={existingImageUrl ? '새 이미지를 선택하지 않으면 현재 이미지를 유지합니다.' : 'PNG, JPG, WebP 형식의 5MB 이하 이미지를 선택해 주세요.'} error={errors.imageFile || imageError}>
+              <FormField id="imageFile" label="배너 이미지 파일" required={!isEditMode} description={existingImageUrl ? '새 이미지를 선택하지 않으면 현재 이미지를 유지합니다.' : 'PNG, JPG, WebP 형식의 5MB 이하 이미지를 선택해 주세요. 3:1 가로 이미지(예: 1200×400)를 권장해요.'} error={errors.imageFile || imageError}>
                 <input ref={imageInputRef} id="imageFile" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} aria-invalid={Boolean(errors.imageFile || imageError)} aria-describedby={errors.imageFile || imageError ? 'imageFile-error' : undefined} className="mt-1.5 block w-full rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-5 text-sm text-gray-700 outline-none transition hover:border-[#6C48F5]/50 hover:bg-white focus:border-[#6C48F5] focus:ring-2 focus:ring-[#6C48F5]/20 file:mr-3 file:rounded-lg file:border-0 file:bg-[#F0EDFF] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#6C48F5] disabled:bg-slate-50" />
                 {selectedImage && (
                   <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-[#F7F6FC] px-3 py-2 text-xs text-[#5D5A6E]">

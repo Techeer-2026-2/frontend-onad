@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import CampaignHistoryPanel from '../components/CampaignHistoryPanel'
 import CampaignTable from '../components/CampaignTable'
 import { getCampaigns } from '../api/campaigns'
-import { mockCampaigns } from '../mock/campaigns'
 
 function formatTargetAudience(ageGroups, genders) {
   const ages = Array.isArray(ageGroups)
@@ -67,12 +66,10 @@ function AllCampaignsPanel() {
     return () => controller.abort()
   }, [retryCount])
 
-  const displayCampaigns = campaigns.length > 0 ? campaigns : mockCampaigns
-  const filteredCampaigns = displayCampaigns.filter((campaign) => {
-    const normalizedStatus = campaign.status === 'ONGOING' || campaign.status === 'active' ? 'ongoing'
-      : campaign.status === 'ENDED' || campaign.status === 'ended' ? 'ended' : 'pending'
-    return (statusFilter === 'all' || normalizedStatus === statusFilter)
-      && campaign.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
+  const searchQuery = searchTerm.trim().toLowerCase()
+  const filteredCampaigns = campaigns.filter((campaign) => {
+    return (statusFilter === 'all' || campaign.status === statusFilter)
+      && campaign.name.toLowerCase().includes(searchQuery)
   })
   const totalPages = Math.ceil(filteredCampaigns.length / pageSize)
   const visibleCampaigns = filteredCampaigns.slice(page * pageSize, (page + 1) * pageSize)
@@ -83,8 +80,8 @@ function AllCampaignsPanel() {
         <div className="inline-flex w-fit rounded-xl bg-[#F4F4F6] p-1.5 text-sm font-semibold">
           {[
             ['all', '전체 캠페인'],
-            ['ongoing', '진행중'],
-            ['ended', '종료됨'],
+            ['ONGOING', '진행중'],
+            ['ENDED', '종료됨'],
           ].map(([value, label]) => (
             <button
               key={value}
@@ -139,6 +136,7 @@ function AllCampaignsPanel() {
 
 function CampaignList() {
   const [searchParams] = useSearchParams()
+  const { state } = useLocation()
   const showHistory = searchParams.get('tab') === 'history'
 
   return (
@@ -159,6 +157,7 @@ function CampaignList() {
         </Link>
       </header>
 
+      {state?.notice && <p role="status" className="text-sm text-[#667085]">{state.notice}</p>}
       {showHistory ? <CampaignHistoryPanel /> : <AllCampaignsPanel />}
     </div>
   )

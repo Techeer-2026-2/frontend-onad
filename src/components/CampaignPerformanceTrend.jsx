@@ -29,9 +29,9 @@ function isCount(value) {
   return Number.isFinite(value) && value >= 0
 }
 
-function readBuckets(response) {
+function readBuckets(response, granularity) {
   if (!Array.isArray(response)) throw new Error('성과 추이 응답 형식이 올바르지 않습니다.')
-  return response.map(({ bucketStart, impressionCount, clickCount, spentAmount }) => {
+  const buckets = response.map(({ bucketStart, impressionCount, clickCount, spentAmount }) => {
     // 날짜 또는 시간대가 없는 날짜·시각은 한국 시간으로 해석한다.
     const hasTime = typeof bucketStart === 'string' && bucketStart.includes('T')
     const date = typeof bucketStart === 'string' && new Date(hasTime
@@ -42,6 +42,21 @@ function readBuckets(response) {
     }
     return { date, impressionCount, clickCount, spentAmount: isCount(spentAmount) ? spentAmount : null }
   }).sort((a, b) => a.date - b.date)
+  if (granularity !== 'week') return buckets
+
+  const weeks = []
+  for (let start = 0; start < buckets.length; start += 7) {
+    const days = buckets.slice(start, start + 7)
+    weeks.push({
+      date: days[0].date,
+      impressionCount: days.reduce((sum, day) => sum + day.impressionCount, 0),
+      clickCount: days.reduce((sum, day) => sum + day.clickCount, 0),
+      spentAmount: days.every(day => day.spentAmount !== null)
+        ? days.reduce((sum, day) => sum + day.spentAmount, 0)
+        : null,
+    })
+  }
+  return weeks
 }
 
 function metricValue(bucket, metric) {
@@ -116,8 +131,13 @@ export default function CampaignPerformanceTrend({ campaign }) {
   useEffect(() => {
     if (campaignId == null) return
     const controller = new AbortController()
-    getCampaignTimeseries(campaignId, { from, to, granularity, signal: controller.signal })
-      .then(readBuckets)
+    getCampaignTimeseries(campaignId, {
+      from: `${from}T00:00:00`,
+      to: `${to}T00:00:00`,
+      granularity: granularity === 'week' ? 'day' : granularity,
+      signal: controller.signal,
+    })
+      .then(response => readBuckets(response, granularity))
       .then(buckets => {
         if (!controller.signal.aborted) setResult({ key: requestKey, buckets })
       })

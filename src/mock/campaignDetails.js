@@ -13,6 +13,7 @@ export const mockCampaignDetails = [
     imageUrl: null,
     impressionCount: 1205000,
     clickCount: 40260,
+    targetClicks: 50000,
   },
   {
     campaignId: 'mock-indie-festival',
@@ -27,6 +28,7 @@ export const mockCampaignDetails = [
     imageUrl: null,
     impressionCount: 0,
     clickCount: 0,
+    targetClicks: null, // 목표 미설정
   },
   {
     campaignId: 'mock-redvelvet-event',
@@ -41,6 +43,7 @@ export const mockCampaignDetails = [
     imageUrl: null,
     impressionCount: 840000,
     clickCount: 25200,
+    targetClicks: 20000,
   },
   {
     campaignId: 'mock-spring-playlist',
@@ -55,6 +58,7 @@ export const mockCampaignDetails = [
     imageUrl: null,
     impressionCount: 3100000,
     clickCount: 77500,
+    targetClicks: 80000,
   },
 ]
 

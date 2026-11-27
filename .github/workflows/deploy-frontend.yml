@@ -1,0 +1,61 @@
+name: Deploy frontend (광고 사이트, S3 + CloudFront)
+
+# main 에 push 되면 운영 배포. 수동 실행(workflow_dispatch)도 가능.
+# 배포 전 production 환경 승인(Required reviewers)을 거친다.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 배포가 동시에 두 개 돌지 않도록 큐에 세운다.
+concurrency:
+  group: deploy-frontend-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write   # AWS OIDC 로 임시 권한을 받기 위해 필요
+
+jobs:
+  deploy:
+    name: S3 업로드 + CloudFront 캐시 비우기
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+
+    steps:
+      - name: 소스 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 패키지 설치
+        run: npm ci
+
+      - name: 빌드
+        # 테스트용 값은 빈 값으로 덮어써서 운영 번들에 들어가지 않게 한다.
+        env:
+          VITE_API_BASE_URL: ""
+          VITE_TEST_MEMBER_ID: ""
+          VITE_TEST_COMMUTE_PROFILE_ID: ""
+          VITE_TEST_TARGET_USER_ID: ""
+        run: npm run build
+
+      - name: AWS 권한 받기 (OIDC, 장기 키 없음)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_FRONTEND_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - name: S3 업로드
+        run: aws s3 sync dist "s3://${{ vars.FRONTEND_BUCKET }}" --delete
+
+      - name: CloudFront 캐시 비우기
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*"

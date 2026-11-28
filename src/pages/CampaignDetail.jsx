@@ -19,10 +19,9 @@ import CampaignBudgetSection from '../components/CampaignBudgetSection'
 import CampaignTrendSection from '../components/CampaignTrendSection'
 import GoalProgressCard from '../components/GoalProgressCard'
 import ReportDownloadModal from '../components/ReportDownloadModal'
-import { deleteCampaign, getCampaign } from '../api/campaigns'
+import { deleteCampaign, getCampaign, pauseCampaign, resumeCampaign } from '../api/campaigns'
 import { subscribeCampaignStats } from '../api/campaignStats'
-import { getMockCampaignDetail } from '../mock/campaignDetails'
-import { mockAgeCtrLift } from '../mock/campaignAnalytics'
+import { getCampaignAgeCtrLift } from '../api/campaignPerformance'
 
 function getAgeGroupChips(values) {
   if (!Array.isArray(values) || values.length === 0) return ['—']
@@ -68,21 +67,14 @@ function CampaignDetail() {
   const [deleteError, setDeleteError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
   const [liveStats, setLiveStats] = useState(null)
-  const [streamStatus, setStreamStatus] = useState('connecting')
-  const [streamError, setStreamError] = useState('')
+  const [, setStreamStatus] = useState('connecting')
+  const [, setStreamError] = useState('')
   const [isReportOpen, setIsReportOpen] = useState(false)
-  const mockCampaign = getMockCampaignDetail(campaignId)
-  const isMockCampaign = Boolean(mockCampaign)
+  const [ageLiftState, setAgeLiftState] = useState({ key: null, data: [], error: '' })
+  const [isTogglingPause, setIsTogglingPause] = useState(false)
+  const [pauseError, setPauseError] = useState('')
 
   useEffect(() => {
-    if (mockCampaign) {
-      setCampaign(mockCampaign)
-      setLoadedCampaignId(campaignId)
-      setErrorMessage('')
-      setIsLoading(false)
-      return undefined
-    }
-
     const controller = new AbortController()
 
     getCampaign(campaignId, { signal: controller.signal })
@@ -104,15 +96,23 @@ function CampaignDetail() {
       })
 
     return () => controller.abort()
-  }, [campaignId, mockCampaign, retryCount])
+  }, [campaignId, retryCount])
+
+  // 연령대별 CTR, 평균 대비 Lift
+  useEffect(() => {
+    const controller = new AbortController()
+    getCampaignAgeCtrLift(campaignId, { signal: controller.signal })
+      .then((data) => {
+        if (!controller.signal.aborted) setAgeLiftState({ key: campaignId, data, error: '' })
+      })
+      .catch((error) => {
+        if (controller.signal.aborted || error.name === 'AbortError') return
+        setAgeLiftState({ key: campaignId, data: [], error: '연령대별 성과를 불러오지 못했습니다.' })
+      })
+    return () => controller.abort()
+  }, [campaignId])
 
   useEffect(() => {
-    if (isMockCampaign) {
-      setStreamStatus('mock')
-      setStreamError('')
-      return undefined
-    }
-
     const controller = new AbortController()
     subscribeCampaignStats(campaignId, {
       signal: controller.signal,
@@ -121,7 +121,21 @@ function CampaignDetail() {
       onError: (message) => setStreamError(message),
     })
     return () => controller.abort()
-  }, [campaignId, isMockCampaign])
+  }, [campaignId])
+
+  async function handleTogglePause() {
+    const isPaused = campaign?.savedStatus === 'PAUSED'
+    setIsTogglingPause(true)
+    setPauseError('')
+    try {
+      await (isPaused ? resumeCampaign(campaignId) : pauseCampaign(campaignId))
+      setCampaign((current) => current && { ...current, savedStatus: isPaused ? 'ACTIVE' : 'PAUSED' })
+    } catch (error) {
+      setPauseError(error.message || (isPaused ? '캠페인을 재개하지 못했습니다.' : '캠페인을 일시정지하지 못했습니다.'))
+    } finally {
+      setIsTogglingPause(false)
+    }
+  }
 
   async function handleDelete() {
     if (!window.confirm('캠페인을 삭제할까요? 삭제한 캠페인은 복구할 수 없습니다.')) return
@@ -152,7 +166,9 @@ function CampaignDetail() {
     )
   }
 
-  const status = getStatus(campaign.status)
+  const status = campaign.savedStatus === 'PAUSED' && campaign.status !== 'ENDED'
+    ? { label: '일시정지', className: 'bg-[#FEF3C7] text-[#B45309]' }
+    : getStatus(campaign.status)
   const currentLiveStats = liveStats?.campaignId === campaignId ? liveStats : null
   const impressions = currentLiveStats?.impressionCount ?? campaign.impressionCount
   const clicks = currentLiveStats?.clickCount ?? campaign.clickCount
@@ -188,9 +204,9 @@ function CampaignDetail() {
             >
               <Download size={14} aria-hidden="true" />리포트 다운로드
             </button>
-            {!isMockCampaign && campaign.status !== 'ENDED' && <>
+            {campaign.status !== 'ENDED' && <>
               <Link to={`/campaigns/${campaignId}/edit`} className="inline-flex min-h-8 items-center rounded-lg border border-[#DED9FA] bg-[#F8F7FF] px-3 text-xs font-semibold text-[#6C48F5] hover:bg-[#F0EDFF]">캠페인 수정</Link>
-              <button type="button" disabled title="캠페인 발송/상태 변경 API는 Swagger에 없습니다." className="min-h-8 cursor-not-allowed rounded-lg bg-[#2A2C41] px-3 text-xs font-semibold text-white/50">{campaign.status === 'ONGOING' ? '캠페인 일시정지' : '캠페인 재개'}</button>
+              <button type="button" onClick={handleTogglePause} disabled={isTogglingPause} className="min-h-8 rounded-lg bg-[#2A2C41] px-3 text-xs font-semibold text-white hover:bg-[#3A3D55] disabled:cursor-not-allowed disabled:opacity-60">{isTogglingPause ? '처리 중…' : campaign.savedStatus === 'PAUSED' ? '캠페인 재개' : '캠페인 일시정지'}</button>
               <button type="button" onClick={handleDelete} disabled={isDeleting} className="min-h-8 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60">{isDeleting ? '삭제 중…' : '캠페인 삭제'}</button>
             </>}
           </div>
@@ -201,6 +217,7 @@ function CampaignDetail() {
         </div>
       </section>
 
+      {pauseError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pauseError}</p>}
       {deleteError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{deleteError}</p>}
 
       
@@ -241,7 +258,11 @@ function CampaignDetail() {
           <section aria-label="타겟 연령 조건별 CTR Lift 분석" className="rounded-2xl border border-[#ECEAF5] bg-white p-5 shadow-sm">
             <h2 className="border-b border-[#F0EFF7] pb-3 text-sm font-bold text-[#2A2C41]">타겟 연령 조건별 CTR Lift 분석</h2>
             <div className="space-y-5 py-4">
-              {mockAgeCtrLift.map((item) => (
+              {ageLiftState.key !== campaignId && <p role="status" className="text-center text-xs text-[#858296]">연령대별 성과를 불러오는 중입니다…</p>}
+              {ageLiftState.key === campaignId && (ageLiftState.error || ageLiftState.data.length === 0) && (
+                <p className="text-center text-xs text-[#858296]">{ageLiftState.error || '아직 연령대별 노출 데이터가 없습니다.'}</p>
+              )}
+              {ageLiftState.key === campaignId && ageLiftState.data.map((item) => (
                 <div key={item.age}>
                   <div className="mb-2 flex items-center justify-between text-xs"><span className="font-bold text-[#2A2C41]">{item.age}</span><span className="font-bold text-[#6C48F5]">CTR {item.ctr}%</span></div>
                   <div className="h-2 overflow-hidden rounded-full bg-[#F0EDFF]"><div className="h-full rounded-full bg-linear-to-r from-[#8061F9] to-[#6C48F5]" style={{ width: `${Math.min(item.ctr / 5 * 100, 100)}%` }} /></div>

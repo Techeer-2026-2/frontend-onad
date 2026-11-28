@@ -45,3 +45,12 @@ export function deleteCampaign(campaignId) {
     method: 'DELETE',
   })
 }
+
+// 캠페인 일시정지 / 재개 (204)
+export function pauseCampaign(campaignId) {
+  return apiRequest(`/api/v1/campaigns/${encodeURIComponent(campaignId)}/pause`, { method: 'POST' })
+}
+
+export function resumeCampaign(campaignId) {
+  return apiRequest(`/api/v1/campaigns/${encodeURIComponent(campaignId)}/resume`, { method: 'POST' })
+}

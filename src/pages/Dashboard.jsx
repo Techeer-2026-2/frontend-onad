@@ -76,6 +76,34 @@ function mapDashboardCampaign(campaign) {
   }
 }
 
+// 캠페인이 없을 때 보여줄 미리보기용 지표 (흐리게 깔리는 예시 값, 실제 데이터 아님)
+const previewMetrics = [
+  { label: '누적 노출 수', value: '1,240', icon: Eye, tone: 'lavender' },
+  { label: '누적 클릭수', value: '86', icon: MousePointerClick, tone: 'dark' },
+  { label: '남은 예산', value: '₩72,000', caption: '예산 소진율 28%', progress: 28, icon: Coins, tone: 'pink' },
+  { label: '진행 중인 캠페인', value: 1, icon: Megaphone, tone: 'purple' },
+]
+
+// 캠페인이 하나도 없을 때: 흐린 지표 카드 위에 첫 캠페인 등록 버튼을 올린다
+function FirstCampaignPreview() {
+  return (
+    <div className="relative">
+      <div aria-hidden="true" inert className="pointer-events-none grid select-none grid-cols-1 gap-6 opacity-50 blur-[3px] md:grid-cols-2 lg:grid-cols-4">
+        {previewMetrics.map((metric) => <KpiCard key={metric.tone} {...metric} />)}
+      </div>
+      <Link
+        to="/campaigns/new"
+        className="group absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-[2rem] text-center transition-colors hover:bg-onad-purple/5 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-onad-purple"
+      >
+        <p className="rounded-full bg-white/85 px-4 py-1.5 text-base font-bold text-[#2A2C41] shadow-sm">캠페인을 등록하면 여기에 성과가 채워져요</p>
+        <span className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-onad-purple px-5 text-sm font-bold text-white shadow-lg shadow-onad-purple/25 transition group-hover:bg-[#5839DB]">
+          <Plus size={17} aria-hidden="true" /> 첫 캠페인 등록하기
+        </span>
+      </Link>
+    </div>
+  )
+}
+
 function Dashboard() {
   const [campaigns, setCampaigns] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -145,7 +173,7 @@ function Dashboard() {
             <button type="button" className="mt-3 rounded-lg border px-3 py-2 text-xs font-semibold" onClick={() => { setIsLoading(true); setErrorMessage(''); setRetryCount((n) => n + 1) }}>다시 시도</button>
           </div>
         ) : !selectedCampaign ? (
-          <p role="status" className="rounded-xl border bg-white p-5 text-sm text-[#667085]">등록된 캠페인이 없어요.</p>
+          <FirstCampaignPreview />
         ) : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {metrics.map((metric) => <KpiCard key={metric.tone} {...metric} />)}

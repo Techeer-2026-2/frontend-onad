@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+node_modules
+
+# 로컬 환경 변수 (사람마다 값이 다름, 공용 예시는 .env.example)
+.env
+.env.*
+!.env.example
